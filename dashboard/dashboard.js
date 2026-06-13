@@ -232,6 +232,35 @@ function fmtPct(v) {
   return Number(v).toFixed(1) + "%";
 }
 
+function fmtComma(v) {
+  if (v === null || v === undefined) return "—";
+  return Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function ddStatusClass(used, limit) {
+  if (!limit) return "";
+  const pct = used / limit;
+  if (pct >= 0.8) return "text-danger";
+  if (pct >= 0.5) return "text-warn";
+  return "text-success";
+}
+
+function ddFillClass(used, limit) {
+  if (!limit) return "dd-fill-safe";
+  const pct = used / limit;
+  if (pct >= 0.8) return "dd-fill-danger";
+  if (pct >= 0.5) return "dd-fill-warning";
+  return "dd-fill-safe";
+}
+
+function ddStatusLabel(used, limit) {
+  if (!limit) return "—";
+  const pct = used / limit;
+  if (pct >= 0.8) return "DANGER — DD limit nearly reached";
+  if (pct >= 0.5) return "WARNING — DD usage elevated";
+  return "SAFE";
+}
+
 function clampBar(value) {
   const n = Number(value);
   if (Number.isNaN(n)) return 50;
@@ -557,6 +586,100 @@ function renderActivityLog(items) {
   `).join("");
 }
 
+function renderNT8Account(data) {
+  const root = el("nt8Account");
+  if (!root) return;
+  const snap = data && data.snapshot;
+  if (!snap) {
+    root.innerHTML = "<div class='muted'>No NT8 account data — run <code>python connectors/ninjatrader/nt8_sync.py</code></div>";
+    return;
+  }
+  const ddUsed  = snap.trailing_drawdown_used  || 0;
+  const ddLimit = snap.trailing_drawdown_limit  || 1;
+  const ddPct   = Math.min(100, (ddUsed / ddLimit) * 100);
+  const pnlClass = (snap.daily_pnl || 0) >= 0 ? "text-success" : "text-danger";
+  root.innerHTML = `
+    <div class="row">
+      <div class="status-block">
+        <div class="title">Account</div>
+        <div class="value">${escapeHtml(snap.account_id || "—")}</div>
+      </div>
+      <div class="status-block">
+        <div class="title">Equity</div>
+        <div class="value">$${fmtComma(snap.equity)}</div>
+      </div>
+      <div class="status-block">
+        <div class="title">Daily PnL</div>
+        <div class="value ${pnlClass}">${(snap.daily_pnl || 0) >= 0 ? "+" : ""}$${fmtComma(snap.daily_pnl || 0)}</div>
+      </div>
+      <div class="status-block">
+        <div class="title">Strategy</div>
+        <div class="value">${escapeHtml(snap.active_strategy_id || "—")}</div>
+      </div>
+    </div>
+    <div class="dd-section">
+      <div class="dd-label">
+        <span class="muted">Trailing Drawdown</span>
+        <span class="${ddStatusClass(ddUsed, ddLimit)}">$${fmtComma(ddUsed)} / $${fmtComma(ddLimit)}</span>
+      </div>
+      <div class="dd-bar">
+        <div class="dd-fill ${ddFillClass(ddUsed, ddLimit)}" style="width:${ddPct.toFixed(1)}%"></div>
+      </div>
+      <div class="dd-status ${ddStatusClass(ddUsed, ddLimit)}">${ddStatusLabel(ddUsed, ddLimit)}</div>
+    </div>
+    <div class="muted" style="font-size:0.8em;margin-top:6px;">Snapshot: ${escapeHtml(snap.snapshot_at || "—")}</div>
+  `;
+}
+
+function renderNT8Trades(data) {
+  const root    = el("nt8Trades");
+  const summary = el("nt8TradeSummary");
+  const countEl = el("nt8TradeCount");
+  if (!root) return;
+
+  const items    = (data && data.items) || [];
+  if (countEl) countEl.textContent = items.length;
+
+  const totalPnl = items.reduce((sum, t) => sum + (t.pnl || 0), 0);
+  const wins     = items.filter(t => (t.pnl || 0) > 0).length;
+  const losses   = items.filter(t => (t.pnl || 0) <= 0).length;
+  const pnlTotalClass = totalPnl >= 0 ? "text-success" : "text-danger";
+
+  if (summary) {
+    summary.innerHTML = `
+      <div class="nt8-summary">
+        <span class="summary-item"><span class="muted">Trades</span> ${items.length}</span>
+        <span class="summary-item"><span class="muted">Total PnL</span> <span class="${pnlTotalClass}">${totalPnl >= 0 ? "+" : ""}$${fmtComma(totalPnl)}</span></span>
+        <span class="summary-item"><span class="muted">W/L</span> <span class="text-success">${wins}W</span> / <span class="text-danger">${losses}L</span></span>
+      </div>
+    `;
+  }
+
+  if (!items.length) {
+    root.innerHTML = "<div class='muted'>No NT8 trades imported — run <code>python connectors/ninjatrader/nt8_sync.py</code></div>";
+    return;
+  }
+
+  root.innerHTML = items.map(t => {
+    const pnlClass = (t.pnl || 0) > 0 ? "text-success" : "text-danger";
+    const dirClass = t.direction === "LONG" ? "text-success" : "text-danger";
+    const entryDate = (t.entry_time || "").slice(0, 10);
+    const entryTime = (t.entry_time || "").slice(11, 16);
+    const exitTime  = (t.exit_time  || "").slice(11, 16);
+    return `
+      <div class="list-item">
+        <div class="item-icon">F</div>
+        <div>
+          <div class="item-title">${escapeHtml(t.symbol || "—")} <span class="${dirClass}">${escapeHtml(t.direction || "")}</span></div>
+          <div class="muted">${entryDate} ${entryTime}→${exitTime} · ${escapeHtml(t.strategy_id || t.account_id || "")}</div>
+        </div>
+        <div class="item-value muted">×${t.quantity || 1}</div>
+        <div class="item-value ${pnlClass}">${(t.pnl || 0) >= 0 ? "+" : ""}$${fmtComma(t.pnl || 0)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
 // ---------------------------------------------------------------------------
 // REFRESH — tries live API first, falls back to mock
 // ---------------------------------------------------------------------------
@@ -569,12 +692,14 @@ async function refresh() {
       const pill = el("apiStatus");
       if (pill) { pill.className = "status-pill online"; pill.textContent = "API Online"; }
 
-      const [queue, rankings, pipeline, propFirm, activity] = await Promise.all([
+      const [queue, rankings, pipeline, propFirm, activity, nt8Acct, nt8Trd] = await Promise.all([
         apiFetch("/strategy-queue"),
         apiFetch("/research-rankings"),
         apiFetch("/pipeline-status"),
         apiFetch("/prop-firm-candidates"),
         apiFetch("/activity-feed"),
+        apiFetch("/nt8-account"),
+        apiFetch("/nt8-trades"),
       ]);
 
       if (queue)    renderQueue(queue.items || []);
@@ -582,6 +707,8 @@ async function refresh() {
       if (pipeline) { renderPipelineStatus(pipeline); renderFirmHealth(pipelineToHealth(pipeline)); }
       if (propFirm) renderPropFirm(propFirm);
       if (activity) renderActivityLog((activity.items || []).map(normalizeActivity));
+      renderNT8Account(nt8Acct || { snapshot: null });
+      renderNT8Trades(nt8Trd  || { count: 0, items: [] });
 
       // Panels without live endpoints yet → keep mock
       const [mf, app, rej, asset, risk, regime, fwd] = await Promise.all([
@@ -640,6 +767,8 @@ async function refresh() {
     renderFirmHealth(hlth);
     renderRankings({ count: 0, items: [] });
     renderPropFirm({ profile: null, count: 0, items: [] });
+    renderNT8Account({ snapshot: null });
+    renderNT8Trades({ count: 0, items: [] });
 
     el("lastUpdated").textContent = new Date().toISOString();
     logActivity("API offline — using mock data");
