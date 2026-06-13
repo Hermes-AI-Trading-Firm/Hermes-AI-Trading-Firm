@@ -1,0 +1,7 @@
+HERMESVENV/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.db-journal
