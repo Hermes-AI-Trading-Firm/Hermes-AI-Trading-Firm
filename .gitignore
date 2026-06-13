@@ -5,3 +5,4 @@ __pycache__/
 *.pyo
 *.db
 *.db-journal
+reports/dashboard_state.json
