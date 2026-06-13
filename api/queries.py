@@ -420,3 +420,51 @@ def activity_feed(conn: sqlite3.Connection, limit: int = 20) -> Dict[str, Any]:
         return {"error": str(exc), "count": 0, "items": []}
 
     return {"count": len(events), "items": events}
+
+
+# ---------------------------------------------------------------------------
+# /strategy-attribution
+# ---------------------------------------------------------------------------
+
+def strategy_attribution(conn: sqlite3.Connection) -> Dict[str, Any]:
+    try:
+        cur = conn.execute("""
+            SELECT
+                t.strategy_id,
+                ss.spec_id,
+                ss.asset_class,
+                ss.symbol,
+                ss.timeframe,
+                COUNT(*)                                                          AS trade_count,
+                ROUND(SUM(t.pnl), 2)                                             AS total_pnl,
+                SUM(CASE WHEN t.pnl > 0  THEN 1 ELSE 0 END)                     AS wins,
+                SUM(CASE WHEN t.pnl <= 0 THEN 1 ELSE 0 END)                     AS losses,
+                ROUND(SUM(CASE WHEN t.pnl > 0 THEN t.pnl  ELSE 0   END), 2)    AS gross_profit,
+                ROUND(SUM(CASE WHEN t.pnl < 0 THEN ABS(t.pnl) ELSE 0 END), 2)  AS gross_loss,
+                ROUND(AVG(CASE WHEN t.pnl > 0 THEN t.pnl END), 2)              AS avg_win,
+                ROUND(AVG(CASE WHEN t.pnl < 0 THEN t.pnl END), 2)              AS avg_loss,
+                ROUND(MAX(t.pnl), 2)                                              AS best_trade,
+                ROUND(MIN(t.pnl), 2)                                              AS worst_trade,
+                ROUND(SUM(t.commission), 2)                                       AS total_commission,
+                MAX(t.entry_time)                                                 AS last_trade_time
+            FROM nt8_trades t
+            LEFT JOIN strategy_specs ss ON ss.spec_name = t.strategy_id
+            GROUP BY t.strategy_id
+            ORDER BY total_pnl DESC
+        """)
+        items = _rows(cur)
+    except Exception as exc:
+        return {"error": str(exc), "count": 0, "items": []}
+
+    for item in items:
+        tc   = item.get("trade_count") or 0
+        wins = item.get("wins") or 0
+        item["win_rate"]      = round(wins / tc * 100, 1) if tc else 0.0
+        gp = item.get("gross_profit") or 0.0
+        gl = item.get("gross_loss")   or 0.0
+        item["profit_factor"] = round(gp / gl, 2) if gl else None
+        item["net_pnl"]       = round(
+            (item.get("total_pnl") or 0.0) - (item.get("total_commission") or 0.0), 2
+        )
+
+    return {"count": len(items), "items": items}

@@ -47,6 +47,7 @@ ROUTES: Dict[str, Callable] = {
     "/activity-feed": lambda conn, p: q.activity_feed(
         conn, _int((p.get("limit") or [20])[0]) or 20
     ),
+    "/strategy-attribution": lambda conn, _p: q.strategy_attribution(conn),
 }
 
 

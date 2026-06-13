@@ -680,6 +680,56 @@ function renderNT8Trades(data) {
   }).join("");
 }
 
+function renderAttribution(data) {
+  const root    = el("strategyAttribution");
+  const countEl = el("attributionCount");
+  if (!root) return;
+  const items = (data && data.items) || [];
+  if (countEl) countEl.textContent = items.length;
+  if (!items.length) {
+    root.innerHTML = "<div class='muted'>No NT8 trades imported yet — run <code>python connectors/ninjatrader/nt8_sync.py</code></div>";
+    return;
+  }
+  const maxAbsPnl = Math.max(...items.map(s => Math.abs(s.total_pnl || 0)), 1);
+  root.innerHTML = items.map(s => {
+    const pnl      = s.total_pnl || 0;
+    const pnlClass = pnl >= 0 ? "text-success" : "text-danger";
+    const barW     = Math.min(100, (Math.abs(pnl) / maxAbsPnl) * 100).toFixed(1);
+    const barClass = pnl >= 0 ? "attr-bar-positive" : "attr-bar-negative";
+    const wrClass  = (s.win_rate || 0) >= 50 ? "text-success" : "text-danger";
+    const pfStr    = s.profit_factor != null ? fmtNum(s.profit_factor) : "—";
+    const lastDate = (s.last_trade_time || "").slice(0, 16).replace("T", " ");
+    return `
+      <div class="attr-card">
+        <div class="attr-header">
+          <div>
+            <span class="item-title">${escapeHtml(s.strategy_id || "—")}</span>
+            ${s.asset_class ? `<span class="badge">${escapeHtml(s.asset_class)}</span>` : ""}
+            ${s.symbol      ? `<span class="muted"> ${escapeHtml(s.symbol)}</span>` : ""}
+            ${s.timeframe   ? `<span class="muted">· ${escapeHtml(s.timeframe)}</span>` : ""}
+          </div>
+          <div class="attr-pnl ${pnlClass}">${pnl >= 0 ? "+" : ""}$${fmtComma(pnl)}</div>
+        </div>
+        <div class="attr-bar-wrap">
+          <div class="attr-bar ${barClass}" style="width:${barW}%"></div>
+        </div>
+        <div class="attr-stats">
+          <span><span class="muted">Trades</span> ${s.trade_count || 0}</span>
+          <span><span class="muted">W/L</span> <span class="text-success">${s.wins || 0}W</span> / <span class="text-danger">${s.losses || 0}L</span></span>
+          <span class="${wrClass}"><span class="muted">Win Rate</span> ${s.win_rate || 0}%</span>
+          <span><span class="muted">PF</span> ${pfStr}</span>
+          <span><span class="muted">Avg W</span> <span class="text-success">$${fmtComma(s.avg_win)}</span></span>
+          <span><span class="muted">Avg L</span> <span class="text-danger">$${fmtComma(s.avg_loss)}</span></span>
+          <span><span class="muted">Best</span> <span class="text-success">$${fmtComma(s.best_trade)}</span></span>
+          <span><span class="muted">Worst</span> <span class="text-danger">$${fmtComma(s.worst_trade)}</span></span>
+          <span class="muted">Net (after comm): <span class="${(s.net_pnl || 0) >= 0 ? "text-success" : "text-danger"}">$${fmtComma(s.net_pnl)}</span></span>
+        </div>
+        ${lastDate ? `<div class="attr-last muted">Last trade: ${escapeHtml(lastDate)}</div>` : ""}
+      </div>
+    `;
+  }).join("");
+}
+
 // ---------------------------------------------------------------------------
 // REFRESH — tries live API first, falls back to mock
 // ---------------------------------------------------------------------------
@@ -692,7 +742,7 @@ async function refresh() {
       const pill = el("apiStatus");
       if (pill) { pill.className = "status-pill online"; pill.textContent = "API Online"; }
 
-      const [queue, rankings, pipeline, propFirm, activity, nt8Acct, nt8Trd] = await Promise.all([
+      const [queue, rankings, pipeline, propFirm, activity, nt8Acct, nt8Trd, attr] = await Promise.all([
         apiFetch("/strategy-queue"),
         apiFetch("/research-rankings"),
         apiFetch("/pipeline-status"),
@@ -700,6 +750,7 @@ async function refresh() {
         apiFetch("/activity-feed"),
         apiFetch("/nt8-account"),
         apiFetch("/nt8-trades"),
+        apiFetch("/strategy-attribution"),
       ]);
 
       if (queue)    renderQueue(queue.items || []);
@@ -709,6 +760,7 @@ async function refresh() {
       if (activity) renderActivityLog((activity.items || []).map(normalizeActivity));
       renderNT8Account(nt8Acct || { snapshot: null });
       renderNT8Trades(nt8Trd  || { count: 0, items: [] });
+      renderAttribution(attr   || { count: 0, items: [] });
 
       // Panels without live endpoints yet → keep mock
       const [mf, app, rej, asset, risk, regime, fwd] = await Promise.all([
@@ -769,6 +821,7 @@ async function refresh() {
     renderPropFirm({ profile: null, count: 0, items: [] });
     renderNT8Account({ snapshot: null });
     renderNT8Trades({ count: 0, items: [] });
+    renderAttribution({ count: 0, items: [] });
 
     el("lastUpdated").textContent = new Date().toISOString();
     logActivity("API offline — using mock data");

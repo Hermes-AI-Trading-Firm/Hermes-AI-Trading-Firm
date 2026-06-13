@@ -521,3 +521,68 @@ code {
   gap: 6px;
   align-items: center;
 }
+
+/* Row 7 — full-width */
+
+.row-single {
+  grid-template-columns: 1fr;
+}
+
+/* Strategy Attribution panel */
+
+.attr-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.attr-card:last-child {
+  margin-bottom: 0;
+}
+
+.attr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.attr-pnl {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-left: 12px;
+}
+
+.attr-bar-wrap {
+  height: 8px;
+  border-radius: 999px;
+  background: #1b2531;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.attr-bar {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.attr-bar-positive { background: var(--success); }
+.attr-bar-negative { background: var(--danger); }
+
+.attr-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.attr-last {
+  font-size: 0.8em;
+  margin-top: 6px;
+}
