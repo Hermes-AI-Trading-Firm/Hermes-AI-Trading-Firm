@@ -1,87 +1,71 @@
 /**
- * Dashboard data layer
+ * Dashboard data layer + UI
  *
- * Preferred real source:
- *   reports/dashboard_state.json
- *
- * Fallbacks:
- *   - MOCK object when JSON is missing or fetch fails
- *
- * The database sync writes reports/dashboard_state.json via:
- *   uv run python database/sync_queue.py
+ * Live data source:  http://localhost:7433  (run `python api/run_api.py`)
+ * Fallback:          MOCK object below, with optional reports/dashboard_state.json overlay
  */
+
+// ---------------------------------------------------------------------------
+// MOCK DATA — used when API server is offline
+// ---------------------------------------------------------------------------
 
 const MOCK = {
   marketFocus: [
-    { market: "Stocks (Equities)", symbol: "SPY", regime: "Sideways", reason: "High liquidity, mean-reversion setups favorable" },
-    { market: "Futures", symbol: "MNQ", regime: "Trending", reason: "Nasdaq composite trending, breakout potential" },
-    { market: "Crypto", symbol: "BTCUSDT", regime: "Volatile", reason: "Volatility expanding, swing strategies viable" },
-    { market: "Options", symbol: "SPX", regime: "Sideways", reason: "Low IV rank, premium-selling strategies attractive" },
-    { market: "Futures", symbol: "GC", regime: "Trending", reason: "Gold in defined uptrend" },
-    { market: "Futures", symbol: "CL", regime: "Transition", reason: "Crude shifting; wait for directional clarity" }
+    { market: "Stocks (Equities)", symbol: "SPY",     regime: "Sideways",   reason: "High liquidity, mean-reversion setups favorable" },
+    { market: "Futures",           symbol: "MNQ",     regime: "Trending",   reason: "Nasdaq composite trending, breakout potential" },
+    { market: "Crypto",            symbol: "BTCUSDT", regime: "Volatile",   reason: "Volatility expanding, swing strategies viable" },
+    { market: "Options",           symbol: "SPX",     regime: "Sideways",   reason: "Low IV rank, premium-selling strategies attractive" },
+    { market: "Futures",           symbol: "GC",      regime: "Trending",   reason: "Gold in defined uptrend" },
+    { market: "Futures",           symbol: "CL",      regime: "Transition", reason: "Crude shifting; wait for directional clarity" }
   ],
 
   strategyQueue: [
-    { id: "S-101", name: "MNQ VWAP Pullback", asset: "futures", status: "pending", type: "VWAP / breakout", timeframe: "5m" },
-    { id: "S-102", name: "SPY Opening Range Breakout", asset: "stocks", status: "pending", type: "Breakout", timeframe: "15m" },
-    { id: "S-103", name: "BTC RSI Divergence", asset: "crypto", status: "pending", type: "Mean Reversion", timeframe: "1h" },
-    { id: "S-104", name: "SPX Iron Condor Income", asset: "options", status: "pending", type: "Options Income", timeframe: "Daily" },
-    { id: "S-105", name: "GC Trend Continuation", asset: "futures", status: "pending", type: "Trend Following", timeframe: "4h" }
+    { id: "S-101", name: "MNQ VWAP Pullback",          asset: "futures", status: "pending", type: "VWAP / breakout",  timeframe: "5m" },
+    { id: "S-102", name: "SPY Opening Range Breakout",  asset: "stocks",  status: "pending", type: "Breakout",         timeframe: "15m" },
+    { id: "S-103", name: "BTC RSI Divergence",          asset: "crypto",  status: "pending", type: "Mean Reversion",   timeframe: "1h" },
+    { id: "S-104", name: "SPX Iron Condor Income",      asset: "options", status: "pending", type: "Options Income",   timeframe: "Daily" },
+    { id: "S-105", name: "GC Trend Continuation",       asset: "futures", status: "pending", type: "Trend Following",  timeframe: "4h" }
   ],
 
   approvedStrategies: [
-    { id: "A-21", name: "ES Fair Value Gap Fill", asset: "futures", timeframe: "1h", pf: 1.85, sharpe: 1.42, mdd: 12.4, forwardSince: "2025-10-01" },
-    { id: "A-22", name: "SPY Mean Reversion RSI", asset: "stocks", timeframe: "15m", pf: 1.62, sharpe: 1.18, mdd: 8.7, forwardSince: "2025-11-15" },
-    { id: "A-23", name: "BTC Session Breakout", asset: "crypto", timeframe: "4h", pf: 1.97, sharpe: 1.55, mdd: 22.1, forwardSince: "2026-01-02" }
+    { id: "A-21", name: "ES Fair Value Gap Fill",    asset: "futures", timeframe: "1h",  pf: 1.85, sharpe: 1.42, mdd: 12.4, forwardSince: "2025-10-01" },
+    { id: "A-22", name: "SPY Mean Reversion RSI",   asset: "stocks",  timeframe: "15m", pf: 1.62, sharpe: 1.18, mdd: 8.7,  forwardSince: "2025-11-15" },
+    { id: "A-23", name: "BTC Session Breakout",      asset: "crypto",  timeframe: "4h",  pf: 1.97, sharpe: 1.55, mdd: 22.1, forwardSince: "2026-01-02" }
   ],
 
   rejectedStrategies: [
-    { id: "R-09", name: "NQ Micro Scalper", asset: "futures", stage: "baseline", reason: "Profit factor 0.91; negative expectancy" },
-    { id: "R-10", name: "AAPL Earnings Gap", asset: "stocks", stage: "risk_review", reason: "Excessive drawdown risk (41%)" },
-    { id: "R-11", name: "XYZ Meme Coin Momentum", asset: "crypto", stage: "regime", reason: "Failed in sideways/transition regimes only" },
-    { id: "R-12", name: "SPX Weekly Expiry Scalp", asset: "options", stage: "walk_forward", reason: "OOS performance drop 48%" }
+    { id: "R-09", name: "NQ Micro Scalper",           asset: "futures", stage: "baseline",     reason: "Profit factor 0.91; negative expectancy" },
+    { id: "R-10", name: "AAPL Earnings Gap",          asset: "stocks",  stage: "risk_review",  reason: "Excessive drawdown risk (41%)" },
+    { id: "R-11", name: "XYZ Meme Coin Momentum",    asset: "crypto",  stage: "regime",       reason: "Failed in sideways/transition regimes only" },
+    { id: "R-12", name: "SPX Weekly Expiry Scalp",   asset: "options", stage: "walk_forward", reason: "OOS performance drop 48%" }
   ],
 
   bestByAssetClass: {
-    stocks: { id: "A-22", name: "SPY Mean Reversion RSI", pf: 1.62, sharpe: 1.18, mdd: 8.7 },
-    futures: { id: "A-21", name: "ES Fair Value Gap Fill", pf: 1.85, sharpe: 1.42, mdd: 12.4 },
-    options: { id: "A-24", name: "SPX Range Bound Condor", pf: 1.44, sharpe: 1.05, mdd: 6.3 },
-    crypto: { id: "A-23", name: "BTC Session Breakout", pf: 1.97, sharpe: 1.55, mdd: 22.1 }
+    stocks:  { id: "A-22", name: "SPY Mean Reversion RSI",  pf: 1.62, sharpe: 1.18, mdd: 8.7  },
+    futures: { id: "A-21", name: "ES Fair Value Gap Fill",  pf: 1.85, sharpe: 1.42, mdd: 12.4 },
+    options: { id: "A-24", name: "SPX Range Bound Condor",  pf: 1.44, sharpe: 1.05, mdd: 6.3  },
+    crypto:  { id: "A-23", name: "BTC Session Breakout",    pf: 1.97, sharpe: 1.55, mdd: 22.1 }
   },
 
   bestRiskAdjusted: {
-    id: "A-21",
-    name: "ES Fair Value Gap Fill",
-    asset: "futures",
-    timeframe: "1h",
-    pf: 1.85,
-    sharpe: 1.42,
-    mdd: 12.4,
-    why: "Stable parameter sensitivity and low turnover"
+    id: "A-21", name: "ES Fair Value Gap Fill", asset: "futures", timeframe: "1h",
+    pf: 1.85, sharpe: 1.42, mdd: 12.4, why: "Stable parameter sensitivity and low turnover"
   },
 
   bestRegimeFiltered: {
-    id: "A-25",
-    name: "GC Trend Catching v2",
-    asset: "futures",
-    regime: "Bull regime only",
-    pfWithoutFilter: 1.61,
-    pfWithFilter: 2.12,
+    id: "A-25", name: "GC Trend Catching v2", asset: "futures", regime: "Bull regime only",
+    pfWithoutFilter: 1.61, pfWithFilter: 2.12,
     note: "Filter applied: HMM bull regime + volume expansion"
   },
 
   forwardTestCandidates: [
-    { id: "F-03", name: "NQ Opening Drive", approved: "2026-02-10", forwardStart: "2026-02-17", pf: 1.76, sharpe: 1.31 },
-    { id: "F-04", name: "ETH Session Range Break", approved: "2026-02-08", forwardStart: "2026-02-15", pf: 1.54, sharpe: 1.09 }
+    { id: "F-03", name: "NQ Opening Drive",          approved: "2026-02-10", forwardStart: "2026-02-17", pf: 1.76, sharpe: 1.31 },
+    { id: "F-04", name: "ETH Session Range Break",   approved: "2026-02-08", forwardStart: "2026-02-15", pf: 1.54, sharpe: 1.09 }
   ],
 
   databaseStatus: {
-    totalStrategies: 41,
-    approved: 12,
-    rejected: 18,
-    forwardTesting: 4,
-    queueSize: 7,
-    databaseSize: "18.4 MB"
+    totalStrategies: 41, approved: 12, rejected: 18,
+    forwardTesting: 4, queueSize: 7, databaseSize: "18.4 MB"
   },
 
   activityLog: [
@@ -94,41 +78,114 @@ const MOCK = {
   ],
 
   firmHealth: {
-    generated: 58,
-    tested: 43,
-    approved: 12,
-    rejected: 18,
-    forwardActive: 4,
-    bestPF: 2.12,
-    bestSharpe: 1.55,
-    lowestDD: 6.3
+    generated: 58, tested: 43, approved: 12, rejected: 18,
+    forwardActive: 4, bestPF: 2.12, bestSharpe: 1.55, lowestDD: 6.3
   }
 };
 
-/**
- * MOCK API ADAPTER
- *
- * This adapts to either the local dashboard_state.json or the MOCK object.
- */
+// ---------------------------------------------------------------------------
+// MOCK API ADAPTER
+// ---------------------------------------------------------------------------
+
 const api = {
   current: {
-    marketFocus: () => Promise.resolve(MOCK.marketFocus),
-    strategyQueue: () => Promise.resolve(MOCK.strategyQueue),
-    approvedStrategies: () => Promise.resolve(MOCK.approvedStrategies),
-    rejectedStrategies: () => Promise.resolve(MOCK.rejectedStrategies),
-    bestByAssetClass: () => Promise.resolve(MOCK.bestByAssetClass),
-    bestRiskAdjusted: () => Promise.resolve(MOCK.bestRiskAdjusted),
-    bestRegimeFiltered: () => Promise.resolve(MOCK.bestRegimeFiltered),
+    marketFocus:           () => Promise.resolve(MOCK.marketFocus),
+    strategyQueue:         () => Promise.resolve(MOCK.strategyQueue),
+    approvedStrategies:    () => Promise.resolve(MOCK.approvedStrategies),
+    rejectedStrategies:    () => Promise.resolve(MOCK.rejectedStrategies),
+    bestByAssetClass:      () => Promise.resolve(MOCK.bestByAssetClass),
+    bestRiskAdjusted:      () => Promise.resolve(MOCK.bestRiskAdjusted),
+    bestRegimeFiltered:    () => Promise.resolve(MOCK.bestRegimeFiltered),
     forwardTestCandidates: () => Promise.resolve(MOCK.forwardTestCandidates),
-    databaseStatus: () => Promise.resolve(MOCK.databaseStatus),
-    activityLog: () => Promise.resolve(MOCK.activityLog),
-    firmHealth: () => Promise.resolve(MOCK.firmHealth)
+    databaseStatus:        () => Promise.resolve(MOCK.databaseStatus),
+    activityLog:           () => Promise.resolve(MOCK.activityLog),
+    firmHealth:            () => Promise.resolve(MOCK.firmHealth)
   }
 };
+
+// ---------------------------------------------------------------------------
+// LIVE API CONNECTION
+// ---------------------------------------------------------------------------
+
+const API_BASE = "http://localhost:7433";
+const API_TIMEOUT_MS = 3000;
+
+async function apiFetch(path) {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), API_TIMEOUT_MS);
+    const res = await fetch(API_BASE + path, { signal: ctrl.signal, cache: "no-store" });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (_e) {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// DATA NORMALIZERS — bridge API format ↔ mock format
+// ---------------------------------------------------------------------------
+
+function normalizeQueueItem(item) {
+  return {
+    id:            item.spec_id       || item.id,
+    name:          item.name,
+    asset:         item.asset_class   || item.asset,
+    status:        item.stage         || item.status,
+    type:          item.type          || item.timeframe,
+    timeframe:     item.timeframe,
+    profit_factor: item.profit_factor,
+    days_in_stage: item.days_in_stage,
+    symbol:        item.symbol,
+  };
+}
+
+function normalizeActivity(item) {
+  if (item.created_at) {
+    let time = "--:--";
+    try { time = new Date(item.created_at).toTimeString().slice(0, 5); } catch (_e) {}
+    return { time, msg: item.message || "" };
+  }
+  return { time: item.time || "--:--", msg: item.msg || "" };
+}
+
+function pipelineToHealth(pipeline) {
+  const t = pipeline.totals || {};
+  return {
+    generated:    t.ideas    || 0,
+    tested:       t.specs    || 0,
+    approved:     t.approved || 0,
+    rejected:     t.rejected || 0,
+    forwardActive: 0,
+    bestPF:       null,
+    bestSharpe:   null,
+    lowestDD:     null,
+  };
+}
+
+function mockDbToPipeline(db) {
+  return {
+    totals: {
+      ideas:     db.totalStrategies || 0,
+      specs:     db.totalStrategies || 0,
+      backtests: 0,
+      scored:    0,
+      approved:  db.approved  || 0,
+      rejected:  db.rejected  || 0,
+    },
+    spec_stage_counts: {},
+    today: { backtests: 0, regime_analyses: 0 },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// UTILITIES
+// ---------------------------------------------------------------------------
 
 async function loadStateIfAvailable() {
   try {
-    const res = await fetch("reports/dashboard_state.json", {cache: "no-store"});
+    const res = await fetch("reports/dashboard_state.json", { cache: "no-store" });
     if (!res.ok) return null;
     return await res.json();
   } catch (_e) {
@@ -139,108 +196,40 @@ async function loadStateIfAvailable() {
 function mergeState(state) {
   if (!state) return;
   api.current.firmHealth = () => Promise.resolve({
-    generated: state.generated,
-    tested: state.tested,
-    approved: state.approved,
-    rejected: state.rejected,
+    generated:    state.generated,
+    tested:       state.tested,
+    approved:     state.approved,
+    rejected:     state.rejected,
     forwardActive: 0,
-    bestPF: state.bestPF,
-    bestSharpe: state.bestSharpe,
-    lowestDD: state.lowestDD
+    bestPF:       state.bestPF,
+    bestSharpe:   state.bestSharpe,
+    lowestDD:     state.lowestDD
   });
   api.current.databaseStatus = () => Promise.resolve({
     totalStrategies: state.tested,
-    approved: state.approved,
-    rejected: state.rejected,
-    forwardTesting: 0,
+    approved:        state.approved,
+    rejected:        state.rejected,
+    forwardTesting:  0,
     queueSize: Math.max(0, (state.tested || 0) - (state.approved || 0) - (state.rejected || 0)),
     databaseSize: "auto"
   });
 }
 
-function el(id) {
-  return document.getElementById(id);
-}
+function el(id) { return document.getElementById(id); }
 
 function formatPct(v) {
   if (v === null || v === undefined) return "—";
   return `${v}%`;
 }
 
-function assetClassIcon(asset) {
-  const map = {
-    stocks: "S",
-    futures: "F",
-    options: "O",
-    crypto: "C"
-  };
-  return map[asset] || "?";
+function fmtNum(v) {
+  if (v === null || v === undefined) return "—";
+  return Number(v).toFixed(2);
 }
 
-function statusClass(status) {
-  switch (status) {
-    case "approved":
-      return "text-success";
-    case "rejected":
-      return "text-danger";
-    case "pending":
-      return "text-warn";
-    case "forward_testing":
-      return "text-accent";
-    default:
-      return "";
-  }
-}
-
-function renderMarketFocus(items) {
-  const root = el("marketFocus");
-  if (!items || !items.length) {
-    root.innerHTML = "<div class='muted'>No markets selected</div>";
-    return;
-  }
-  root.innerHTML = items
-    .map(
-      (m) => `
-      <div class="list-item">
-        <div class="item-icon">${assetClassIcon(m.asset || m.market)}</div>
-        <div>
-          <div class="item-title">${escapeHtml(m.market)}</div>
-          <div class="muted">${escapeHtml(m.symbol)} · ${escapeHtml(m.reason || "")}</div>
-        </div>
-        <div class="item-value ${regimeClass(m.regime)}">${escapeHtml(m.regime)}</div>
-      </div>
-    `
-    )
-    .join("");
-}
-
-function renderFirmHealth(h) {
-  const root = el("firmHealth");
-  if (!h) {
-    root.innerHTML = "<div class='muted'>No data</div>";
-    return;
-  }
-  const rows = [
-    { label: "Generated", value: h.generated },
-    { label: "Tested", value: h.tested },
-    { label: "Approved", value: h.approved },
-    { label: "Rejected", value: h.rejected },
-    { label: "Forward Active", value: h.forwardActive },
-    { label: "Best PF", value: h.bestPF },
-    { label: "Best Sharpe", value: h.bestSharpe },
-    { label: "Lowest DD", value: formatPct(h.lowestDD) }
-  ];
-  root.innerHTML = rows
-    .map(
-      (r) => `
-      <div class="meter">
-        <div class="label">${r.label}</div>
-        <div class="bar"><div class="fill" style="width:${clampBar(r.value)}%"></div></div>
-        <div class="value">${r.value}</div>
-      </div>
-    `
-    )
-    .join("");
+function fmtPct(v) {
+  if (v === null || v === undefined) return "—";
+  return Number(v).toFixed(1) + "%";
 }
 
 function clampBar(value) {
@@ -249,23 +238,9 @@ function clampBar(value) {
   return Math.min(100, Math.max(4, Math.round(n * 10)));
 }
 
-function regimeClass(regime) {
-  const map = {
-    Trending: "text-success",
-    Volatile: "text-warn",
-    Sideways: "text-accent",
-    "Sideways/Range-bound": "text-accent",
-    "Mean-reverting": "text-accent",
-    "Mean-reverting": "text-accent",
-    Transition: "text-danger",
-    Bull: "text-success",
-    Bear: "text-danger"
-  };
-  const key = (regime || "").toLowerCase();
-  for (const k of Object.keys(map)) {
-    if (key.includes(k.toLowerCase())) return map[k];
-  }
-  return "";
+function assetClassIcon(asset) {
+  const map = { stocks: "S", futures: "F", options: "O", crypto: "C" };
+  return map[(asset || "").toLowerCase()] || "?";
 }
 
 function escapeHtml(str) {
@@ -276,104 +251,185 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;");
 }
 
+function stageColorClass(stage) {
+  const map = {
+    draft:           "",
+    coding:          "text-warn",
+    spec_created:    "text-warn",
+    pending:         "text-warn",
+    backtesting:     "text-accent",
+    forward_testing: "text-accent",
+    regime_analyzed: "text-success",
+    optimized:       "text-success",
+    approved:        "text-success",
+    rejected:        "text-danger",
+  };
+  return map[stage] || "";
+}
+
+function stagePillClass(stage) {
+  const map = {
+    approved:        "pill-success",
+    rejected:        "pill-danger",
+    backtesting:     "pill-accent",
+    forward_testing: "pill-accent",
+    regime_analyzed: "pill-warn",
+    optimized:       "pill-warn",
+  };
+  return map[stage] || "";
+}
+
+function gradeClass(grade) {
+  if (!grade) return "";
+  if (grade === "A+" || grade === "A") return "text-success";
+  if (grade === "B")                    return "text-warn";
+  if (grade === "C")                    return "text-accent";
+  return "text-danger";
+}
+
+function regimeClass(regime) {
+  const map = {
+    Trending:               "text-success",
+    Volatile:               "text-warn",
+    Sideways:               "text-accent",
+    "Sideways/Range-bound": "text-accent",
+    "Mean-reverting":       "text-accent",
+    Transition:             "text-danger",
+    Bull:                   "text-success",
+    Bear:                   "text-danger"
+  };
+  const key = (regime || "").toLowerCase();
+  for (const k of Object.keys(map)) {
+    if (key.includes(k.toLowerCase())) return map[k];
+  }
+  return "";
+}
+
+// ---------------------------------------------------------------------------
+// RENDER FUNCTIONS
+// ---------------------------------------------------------------------------
+
+function renderMarketFocus(items) {
+  const root = el("marketFocus");
+  if (!items || !items.length) {
+    root.innerHTML = "<div class='muted'>No markets selected</div>";
+    return;
+  }
+  root.innerHTML = items.map(m => `
+    <div class="list-item">
+      <div class="item-icon">${assetClassIcon(m.asset || m.market)}</div>
+      <div>
+        <div class="item-title">${escapeHtml(m.market)}</div>
+        <div class="muted">${escapeHtml(m.symbol)} · ${escapeHtml(m.reason || "")}</div>
+      </div>
+      <div class="item-value ${regimeClass(m.regime)}">${escapeHtml(m.regime)}</div>
+    </div>
+  `).join("");
+}
+
 function renderQueue(items) {
   const root = el("strategyQueue");
   el("queueCount").textContent = items ? items.length : 0;
-  root.innerHTML = (items || [])
-    .map(
-      (s) => `
+  root.innerHTML = (items || []).map(raw => {
+    const s = normalizeQueueItem(raw);
+    const stale = (s.days_in_stage || 0) > 7;
+    return `
       <div class="list-item">
         <div class="item-icon">${assetClassIcon(s.asset)}</div>
         <div>
           <div class="item-title">${escapeHtml(s.name)}</div>
-          <div class="muted">${escapeHtml(s.type || "")} · ${escapeHtml(s.timeframe || "")}</div>
+          <div class="muted">${escapeHtml(s.symbol || s.type || "")} · ${escapeHtml(s.timeframe || "")}</div>
         </div>
-        <div class="item-value muted">${escapeHtml(s.id)}</div>
-        <div class="item-value ${statusClass(s.status)}">${escapeHtml(s.status || "pending")}</div>
+        <div class="item-value muted">${escapeHtml(String(s.id || ""))}</div>
+        <div class="item-value ${stageColorClass(s.status)}">${escapeHtml(s.status || "pending")}${stale ? " ⚠" : ""}</div>
       </div>
-    `
-    )
-    .join("");
+    `;
+  }).join("");
+}
+
+function renderFirmHealth(h) {
+  const root = el("firmHealth");
+  if (!h) { root.innerHTML = "<div class='muted'>No data</div>"; return; }
+  const rows = [
+    { label: "Generated",   value: h.generated },
+    { label: "Tested",      value: h.tested },
+    { label: "Approved",    value: h.approved },
+    { label: "Rejected",    value: h.rejected },
+    { label: "Fwd Active",  value: h.forwardActive },
+    { label: "Best PF",     value: h.bestPF },
+    { label: "Best Sharpe", value: h.bestSharpe },
+    { label: "Lowest DD",   value: formatPct(h.lowestDD) }
+  ];
+  root.innerHTML = rows.map(r => `
+    <div class="meter">
+      <div class="label">${r.label}</div>
+      <div class="bar"><div class="fill" style="width:${clampBar(r.value)}%"></div></div>
+      <div class="value">${r.value ?? "—"}</div>
+    </div>
+  `).join("");
 }
 
 function renderApproved(items) {
   const root = el("approvedStrategies");
-  root.innerHTML = (items || [])
-    .map(
-      (s) => `
-      <div class="list-item">
-        <div class="item-icon">${assetClassIcon(s.asset)}</div>
-        <div>
-          <div class="item-title">${escapeHtml(s.name)}</div>
-          <div class="muted">${escapeHtml(s.timeframe || "")} · PF ${fmtNum(s.pf)}</div>
-        </div>
-        <div class="item-value">Sharpe ${fmtNum(s.sharpe)}</div>
-        <div class="item-value text-success">${fmtPct(s.mdd)} DD</div>
+  root.innerHTML = (items || []).map(s => `
+    <div class="list-item">
+      <div class="item-icon">${assetClassIcon(s.asset)}</div>
+      <div>
+        <div class="item-title">${escapeHtml(s.name)}</div>
+        <div class="muted">${escapeHtml(s.timeframe || "")} · PF ${fmtNum(s.pf)}</div>
       </div>
-    `
-    )
-    .join("");
+      <div class="item-value">Sharpe ${fmtNum(s.sharpe)}</div>
+      <div class="item-value text-success">${fmtPct(s.mdd)} DD</div>
+    </div>
+  `).join("");
 }
 
 function renderRejected(items) {
   const root = el("rejectedStrategies");
-  root.innerHTML = (items || [])
-    .map(
-      (s) => `
-      <div class="list-item">
-        <div class="item-icon">?</div>
-        <div>
-          <div class="item-title">${escapeHtml(s.name)}</div>
-          <div class="muted">${escapeHtml(s.reason || "")}</div>
-        </div>
-        <div class="item-value muted">${escapeHtml(s.stage)}</div>
-        <div class="item-value text-danger">Rejected</div>
+  root.innerHTML = (items || []).map(s => `
+    <div class="list-item">
+      <div class="item-icon">?</div>
+      <div>
+        <div class="item-title">${escapeHtml(s.name)}</div>
+        <div class="muted">${escapeHtml(s.reason || "")}</div>
       </div>
-    `
-    )
-    .join("");
+      <div class="item-value muted">${escapeHtml(s.stage || "")}</div>
+      <div class="item-value text-danger">Rejected</div>
+    </div>
+  `).join("");
 }
 
 function renderBestByAssetClass(obj) {
   const root = el("bestByAssetClass");
   const rows = [
-    { label: "Stocks", v: obj.stocks },
+    { label: "Stocks",  v: obj.stocks  },
     { label: "Futures", v: obj.futures },
     { label: "Options", v: obj.options },
-    { label: "Crypto", v: obj.crypto }
+    { label: "Crypto",  v: obj.crypto  }
   ];
-  root.innerHTML = rows
-    .map(
-      (r) => `
-      <div class="list-item">
-        <div class="item-icon">${assetClassIcon(r.label.toLowerCase())}</div>
-        <div>
-          <div class="item-title">${r.v ? escapeHtml(r.v.name) : "—"}</div>
-          <div class="muted">${r.v ? `${escapeHtml(r.label)} · PF ${fmtNum(r.v.pf)}` : ""}</div>
-        </div>
-        <div class="item-value muted">${r.v ? r.v.id : "—"}</div>
-        <div class="item-value ${r.v && r.v.pf >= 1.5 ? "text-success" : "text-warn"}">${r.v ? formatPct(r.v.mdd) : "—"}</div>
+  root.innerHTML = rows.map(r => `
+    <div class="list-item">
+      <div class="item-icon">${assetClassIcon(r.label.toLowerCase())}</div>
+      <div>
+        <div class="item-title">${r.v ? escapeHtml(r.v.name) : "—"}</div>
+        <div class="muted">${r.v ? `${escapeHtml(r.label)} · PF ${fmtNum(r.v.pf)}` : ""}</div>
       </div>
-    `
-    )
-    .join("");
+      <div class="item-value muted">${r.v ? r.v.id : "—"}</div>
+      <div class="item-value ${r.v && r.v.pf >= 1.5 ? "text-success" : "text-warn"}">${r.v ? fmtPct(r.v.mdd) : "—"}</div>
+    </div>
+  `).join("");
 }
 
 function renderBestRiskAdjusted(obj) {
   const root = el("bestRiskAdjusted");
-  if (!obj) {
-    root.innerHTML = "<div class='muted'>No candidate yet</div>";
-    return;
-  }
+  if (!obj) { root.innerHTML = "<div class='muted'>No candidate yet</div>"; return; }
   root.innerHTML = `
-    <div class="row">
-      <div class="detail-widget">
-        <div class="row">
-          <div><strong>${escapeHtml(obj.name)}</strong> <span class="badge">${escapeHtml(obj.asset)}</span></div>
-          <div class="muted">PF ${fmtNum(obj.pf)} · Sharpe ${fmtNum(obj.sharpe)} · MDD ${fmtPct(obj.mdd)}</div>
-          <div>${escapeHtml(obj.timeframe || "")}</div>
-          <div class="muted">${escapeHtml(obj.why || "")}</div>
-        </div>
+    <div class="detail-widget">
+      <div class="row">
+        <div><strong>${escapeHtml(obj.name)}</strong> <span class="badge">${escapeHtml(obj.asset)}</span></div>
+        <div class="muted">PF ${fmtNum(obj.pf)} · Sharpe ${fmtNum(obj.sharpe)} · MDD ${fmtPct(obj.mdd)}</div>
+        <div>${escapeHtml(obj.timeframe || "")}</div>
+        <div class="muted">${escapeHtml(obj.why || "")}</div>
       </div>
     </div>
   `;
@@ -381,10 +437,7 @@ function renderBestRiskAdjusted(obj) {
 
 function renderBestRegimeFiltered(obj) {
   const root = el("bestRegimeFiltered");
-  if (!obj) {
-    root.innerHTML = "<div class='muted'>No candidate yet</div>";
-    return;
-  }
+  if (!obj) { root.innerHTML = "<div class='muted'>No candidate yet</div>"; return; }
   root.innerHTML = `
     <div class="row">
       <div>
@@ -398,109 +451,169 @@ function renderBestRegimeFiltered(obj) {
 
 function renderForwardTests(items) {
   const root = el("forwardTestCandidates");
-  root.innerHTML = (items || [])
-    .map(
-      (s) => `
-      <div class="list-item">
-        <div class="item-icon">F</div>
-        <div>
-          <div class="item-title">${escapeHtml(s.name)}</div>
-          <div class="muted">Since ${escapeHtml(s.forwardStart || s.approved || "")}</div>
-        </div>
-        <div class="item-value">PF ${fmtNum(s.pf)}</div>
-        <div class="item-value text-accent">${escapeHtml(s.id)}</div>
+  root.innerHTML = (items || []).map(s => `
+    <div class="list-item">
+      <div class="item-icon">F</div>
+      <div>
+        <div class="item-title">${escapeHtml(s.name)}</div>
+        <div class="muted">Since ${escapeHtml(s.forwardStart || s.approved || "")}</div>
       </div>
-    `
-    )
-    .join("");
+      <div class="item-value">PF ${fmtNum(s.pf)}</div>
+      <div class="item-value text-accent">${escapeHtml(s.id)}</div>
+    </div>
+  `).join("");
 }
 
-function renderDatabaseStatus(obj) {
-  const root = el("databaseStatus");
-  if (!obj) {
-    root.innerHTML = "<div class='muted'>No data</div>";
+function renderPipelineStatus(data) {
+  const root = el("pipelineStatus");
+  if (!root) return;
+  if (!data) {
+    root.innerHTML = "<div class='muted'>API offline — run <code>python api/run_api.py</code></div>";
     return;
   }
+  const t = data.totals || {};
+  const stages = data.spec_stage_counts || {};
+  const stageEntries = Object.entries(stages);
+  const today = data.today || {};
   root.innerHTML = `
-    <div class="status-widget">
-      <div class="status-block">
-        <div class="title">Total Strategies</div>
-        <div class="value">${obj.totalStrategies}</div>
+    <div class="row">
+      <div class="status-block"><div class="title">Ideas</div><div class="value">${t.ideas || 0}</div></div>
+      <div class="status-block"><div class="title">Specs</div><div class="value">${t.specs || 0}</div></div>
+      <div class="status-block"><div class="title">Backtests</div><div class="value">${t.backtests || 0}</div></div>
+      <div class="status-block"><div class="title">Scored</div><div class="value">${t.scored || 0}</div></div>
+      <div class="status-block"><div class="title">Approved</div><div class="value text-success">${t.approved || 0}</div></div>
+      <div class="status-block"><div class="title">Rejected</div><div class="value text-danger">${t.rejected || 0}</div></div>
+    </div>
+    ${stageEntries.length ? `<div class="stage-pills">${stageEntries.map(([s, n]) => `<span class="pill ${stagePillClass(s)}">${escapeHtml(s)}: ${n}</span>`).join("")}</div>` : ""}
+    <div class="muted" style="margin-top:6px;font-size:0.8em;">Today — backtests: ${today.backtests || 0} · regime analyses: ${today.regime_analyses || 0}</div>
+  `;
+}
+
+function renderRankings(data) {
+  const root = el("researchRankings");
+  const countEl = el("rankingsCount");
+  if (!root) return;
+  if (countEl) countEl.textContent = data ? (data.count || 0) : 0;
+  if (!data || !data.items || !data.items.length) {
+    root.innerHTML = "<div class='muted'>No scored strategies yet. Run <code>score_strategy()</code> to populate.</div>";
+    return;
+  }
+  root.innerHTML = data.items.map(s => `
+    <div class="list-item">
+      <div class="item-icon">${assetClassIcon(s.asset_class)}</div>
+      <div>
+        <div class="item-title">${escapeHtml(s.name)}</div>
+        <div class="muted">${escapeHtml(s.symbol || "")} · ${escapeHtml(s.timeframe || "")}</div>
       </div>
-      <div class="status-block">
-        <div class="title">Approved</div>
-        <div class="value text-success">${obj.approved}</div>
+      <div class="item-value">${s.profit_factor ? `PF ${fmtNum(s.profit_factor)}` : "—"}</div>
+      <div class="item-value ${gradeClass(s.grade)}">${escapeHtml(s.grade || "—")} · ${fmtNum(s.composite_score)}</div>
+    </div>
+  `).join("");
+}
+
+function renderPropFirm(data) {
+  const profileEl = el("propFirmProfile");
+  const root = el("propFirmCandidates");
+  if (!root) return;
+
+  if (profileEl && data && data.profile) {
+    const p = data.profile;
+    const ddPct     = ((p.trailing_drawdown_limit || 0) * 100).toFixed(0);
+    const dailyPct  = ((p.daily_loss_limit        || 0) * 100).toFixed(0);
+    const targetPct = ((p.profit_target           || 0) * 100).toFixed(0);
+    profileEl.innerHTML = `
+      <div class="prop-firm-header">
+        <strong>${escapeHtml(p.firm_name)} ${escapeHtml(p.account_label)}</strong>
+        <span class="muted">DD ${ddPct}% · Daily ${dailyPct}% · Target ${targetPct}%</span>
       </div>
-      <div class="status-block">
-        <div class="title">Rejected</div>
-        <div class="value text-danger">${obj.rejected}</div>
+    `;
+  } else if (profileEl) {
+    profileEl.innerHTML = "";
+  }
+
+  if (!data || !data.items || !data.items.length) {
+    root.innerHTML = "<div class='muted'>No approved strategies yet.</div>";
+    return;
+  }
+  root.innerHTML = data.items.map(s => `
+    <div class="list-item">
+      <div class="item-icon">${assetClassIcon(s.asset_class)}</div>
+      <div>
+        <div class="item-title">${escapeHtml(s.name)}</div>
+        <div class="muted">${escapeHtml(s.symbol || "")} · ${escapeHtml(s.timeframe || "")}</div>
       </div>
-      <div class="status-block">
-        <div class="title">Queue Size</div>
-        <div class="value">${obj.queueSize}</div>
-      </div>
-      <div class="status-block">
-        <div class="title">Forward Testing</div>
-        <div class="value text-accent">${obj.forwardTesting}</div>
-      </div>
-      <div class="status-block">
-        <div class="title">DB Size</div>
-        <div class="value muted">${escapeHtml(obj.databaseSize)}</div>
+      <div class="item-value">${s.profit_factor ? `PF ${fmtNum(s.profit_factor)}` : "—"}</div>
+      <div class="item-value ${s.eligible === true ? "text-success" : s.eligible === false ? "text-danger" : ""}">
+        ${s.eligible === true ? "Eligible" : s.eligible === false ? "Review" : "—"}
       </div>
     </div>
-  `;
+  `).join("");
 }
 
 function renderActivityLog(items) {
   const root = el("activityLog");
-  root.innerHTML = (items || [])
-    .map(
-      (i) => `
-      <div class="log-entry"><strong>${escapeHtml(i.time)}</strong>${escapeHtml(i.msg)}</div>
-    `
-    )
-    .join("");
+  root.innerHTML = (items || []).map(i => `
+    <div class="log-entry"><strong>${escapeHtml(i.time)}</strong> ${escapeHtml(i.msg)}</div>
+  `).join("");
 }
 
-function fmtNum(v) {
-  if (v === null || v === undefined) return "—";
-  return Number(v).toFixed(2);
-}
-
-function fmtPct(v) {
-  if (v === null || v === undefined) return "—";
-  return Number(v).toFixed(1) + "%";
-}
+// ---------------------------------------------------------------------------
+// REFRESH — tries live API first, falls back to mock
+// ---------------------------------------------------------------------------
 
 async function refresh() {
   try {
-    const state = await loadStateIfAvailable();
-    if (state) {
-      mergeState(state);
-      renderFirmHealth({
-        generated: state.generated,
-        tested: state.tested,
-        approved: state.approved,
-        rejected: state.rejected,
-        forwardActive: 0,
-        bestPF: state.bestPF,
-        bestSharpe: state.bestSharpe,
-        lowestDD: state.lowestDD
-      });
-      renderDatabaseStatus({
-        totalStrategies: state.tested,
-        approved: state.approved,
-        rejected: state.rejected,
-        forwardTesting: 0,
-        queueSize: Math.max(0, (state.tested || 0) - (state.approved || 0) - (state.rejected || 0)),
-        databaseSize: "auto"
-      });
-      logActivity(`Loaded dashboard state from reports/dashboard_state.json`);
-      el("lastUpdated").textContent = state.lastUpdated || new Date().toISOString();
+    const health = await apiFetch("/health");
+
+    if (health && health.status === "ok") {
+      const pill = el("apiStatus");
+      if (pill) { pill.className = "status-pill online"; pill.textContent = "API Online"; }
+
+      const [queue, rankings, pipeline, propFirm, activity] = await Promise.all([
+        apiFetch("/strategy-queue"),
+        apiFetch("/research-rankings"),
+        apiFetch("/pipeline-status"),
+        apiFetch("/prop-firm-candidates"),
+        apiFetch("/activity-feed"),
+      ]);
+
+      if (queue)    renderQueue(queue.items || []);
+      if (rankings) renderRankings(rankings);
+      if (pipeline) { renderPipelineStatus(pipeline); renderFirmHealth(pipelineToHealth(pipeline)); }
+      if (propFirm) renderPropFirm(propFirm);
+      if (activity) renderActivityLog((activity.items || []).map(normalizeActivity));
+
+      // Panels without live endpoints yet → keep mock
+      const [mf, app, rej, asset, risk, regime, fwd] = await Promise.all([
+        api.current.marketFocus(),
+        api.current.approvedStrategies(),
+        api.current.rejectedStrategies(),
+        api.current.bestByAssetClass(),
+        api.current.bestRiskAdjusted(),
+        api.current.bestRegimeFiltered(),
+        api.current.forwardTestCandidates(),
+      ]);
+      renderMarketFocus(mf);
+      renderApproved(app);
+      renderRejected(rej);
+      renderBestByAssetClass(asset);
+      renderBestRiskAdjusted(risk);
+      renderBestRegimeFiltered(regime);
+      renderForwardTests(fwd);
+
+      el("lastUpdated").textContent = health.timestamp || new Date().toISOString();
+      logActivity(`API connected · ${health.strategy_specs || 0} specs · ${health.table_count || 0} tables`);
       return;
     }
 
-    const [mf, q, app, rej, asset, risk, regime, fwd, db, log, health] = await Promise.all([
+    // API offline — fall back to mock / dashboard_state.json
+    const pill = el("apiStatus");
+    if (pill) { pill.className = "status-pill"; pill.textContent = "Mock Data"; }
+
+    const state = await loadStateIfAvailable();
+    if (state) mergeState(state);
+
+    const [mf, q, app, rej, asset, risk, regime, fwd, db, log, hlth] = await Promise.all([
       api.current.marketFocus(),
       api.current.strategyQueue(),
       api.current.approvedStrategies(),
@@ -522,11 +635,14 @@ async function refresh() {
     renderBestRiskAdjusted(risk);
     renderBestRegimeFiltered(regime);
     renderForwardTests(fwd);
-    renderDatabaseStatus(db);
+    renderPipelineStatus(mockDbToPipeline(db));
     renderActivityLog(log);
-    renderFirmHealth(health);
+    renderFirmHealth(hlth);
+    renderRankings({ count: 0, items: [] });
+    renderPropFirm({ profile: null, count: 0, items: [] });
 
     el("lastUpdated").textContent = new Date().toISOString();
+    logActivity("API offline — using mock data");
   } catch (err) {
     console.error("Dashboard refresh failed:", err);
     logActivity("Refresh failed: " + err.message);
@@ -536,11 +652,10 @@ async function refresh() {
 function logActivity(message) {
   const root = el("activityLog");
   if (!root) return;
-  const now = new Date();
-  const time = now.toTimeString().slice(0, 5);
+  const time = new Date().toTimeString().slice(0, 5);
   const entry = document.createElement("div");
   entry.className = "log-entry";
-  entry.innerHTML = `<strong>${escapeHtml(time)}</strong>${escapeHtml(message)}`;
+  entry.innerHTML = `<strong>${escapeHtml(time)}</strong> ${escapeHtml(message)}`;
   root.prepend(entry);
   while (root.children.length > 20) root.lastChild.remove();
 }

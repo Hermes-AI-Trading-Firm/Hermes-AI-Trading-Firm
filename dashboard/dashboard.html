@@ -13,7 +13,7 @@
             <span class="subtitle">Autonomous Strategy Research Pipeline</span>
         </div>
         <div class="header-right">
-            <div class="status-pill online">Online</div>
+            <div class="status-pill online" id="apiStatus">API Online</div>
             <button id="refreshBtn" class="btn primary">Refresh</button>
             <button id="layoutToggle" class="btn">Layout</button>
         </div>
@@ -120,10 +120,10 @@
         <!-- Row 4 -->
         <section class="row row-quaternary">
             <article class="card wide">
-                <h2>Database Status</h2>
-                <div id="databaseStatus" class="widget-content status-widget"></div>
+                <h2>Pipeline Status</h2>
+                <div id="pipelineStatus" class="widget-content status-widget"></div>
                 <footer class="card-footer">
-                    <code class="muted">Path: database/hermes_research.db</code>
+                    <code class="muted">http://localhost:7433/pipeline-status</code>
                 </footer>
             </article>
 
@@ -132,11 +132,31 @@
                 <div id="activityLog" class="widget-content log-widget"></div>
             </article>
         </section>
+
+        <!-- Row 5 -->
+        <section class="row row-quinary">
+            <article class="card">
+                <h2>Research Rankings <span class="badge" id="rankingsCount">0</span></h2>
+                <div id="researchRankings" class="widget-content list-widget"></div>
+                <footer class="card-footer">
+                    <span class="muted">Ranked by composite score from scoring_results</span>
+                </footer>
+            </article>
+
+            <article class="card">
+                <h2>Prop Firm Candidates</h2>
+                <div id="propFirmProfile"></div>
+                <div id="propFirmCandidates" class="widget-content list-widget"></div>
+                <footer class="card-footer">
+                    <span class="muted">Approved strategies vs. firm DD limits</span>
+                </footer>
+            </article>
+        </section>
     </main>
 
     <footer class="app-footer">
         <span>Hermes AI Trading Firm</span>
-        <span class="muted">Dashboard shell — connect to database later</span>
+        <span class="muted">API: <code>python api/run_api.py</code> · Port 7433</span>
     </footer>
 
     <script src="dashboard.js"></script>
