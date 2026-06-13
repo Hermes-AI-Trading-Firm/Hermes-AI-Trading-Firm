@@ -49,6 +49,8 @@ ROUTES: Dict[str, Callable] = {
     ),
     "/strategy-attribution": lambda conn, _p: q.strategy_attribution(conn),
     "/compliance-status":    lambda conn, _p: q.compliance_status(conn),
+    "/equity-curve":         lambda conn, _p: q.equity_curve(conn),
+    "/performance-summary":  lambda conn, _p: q.performance_summary(conn),
 }
 
 

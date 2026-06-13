@@ -730,6 +730,201 @@ function renderAttribution(data) {
   }).join("");
 }
 
+// ---------------------------------------------------------------------------
+// Performance Analytics — SVG chart builders
+// ---------------------------------------------------------------------------
+
+function buildEquitySVG(items) {
+  const VW = 420, VH = 110;
+  const pL = 46, pR = 10, pT = 10, pB = 24;
+  const cW = VW - pL - pR, cH = VH - pT - pB;
+  const n  = items.length;
+
+  const pnls = items.map(p => p.cumulative_pnl || 0);
+  const minV = Math.min(0, ...pnls);
+  const maxV = Math.max(0, ...pnls, 0.01);
+  const rng  = maxV - minV || 1;
+
+  const xS = i  => pL + (n > 1 ? (i / (n - 1)) * cW : cW / 2);
+  const yS = v  => pT + cH - ((v - minV) / rng) * cH;
+  const zY  = yS(0);
+
+  const pts  = items.map((p, i) => `${xS(i).toFixed(1)},${yS(p.cumulative_pnl || 0).toFixed(1)}`).join(" ");
+  const fill = [`${xS(0).toFixed(1)},${zY.toFixed(1)}`,
+                ...items.map((p, i) => `${xS(i).toFixed(1)},${yS(p.cumulative_pnl || 0).toFixed(1)}`),
+                `${xS(n - 1).toFixed(1)},${zY.toFixed(1)}`].join(" ");
+
+  const last = pnls[pnls.length - 1] || 0;
+  const lc   = last >= 0 ? "#1cc27c" : "#e05252";
+  const fc   = last >= 0 ? "#1cc27c1a" : "#e052521a";
+
+  const yVals = minV < 0
+    ? [minV, 0, maxV].map(v => Math.round(v)).filter((v, i, a) => a.indexOf(v) === i)
+    : [0, Math.round(maxV / 2), Math.round(maxV)];
+  const xIdxs = n === 1 ? [0] : [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i);
+
+  return `<svg viewBox="0 0 ${VW} ${VH}" width="100%" height="${VH}" style="display:block;">
+    <rect width="${VW}" height="${VH}" fill="#0d1319"/>
+    <line x1="${pL}" y1="${zY.toFixed(1)}" x2="${VW - pR}" y2="${zY.toFixed(1)}" stroke="#212a37" stroke-width="1" stroke-dasharray="3,3"/>
+    <polygon points="${fill}" fill="${fc}"/>
+    <polyline points="${pts}" fill="none" stroke="${lc}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${yVals.map(v => `<text x="${pL - 4}" y="${(yS(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#8a96a8">${v >= 0 ? "+" : ""}$${Math.abs(v)}</text>`).join("")}
+    ${xIdxs.map(i => `<text x="${xS(i).toFixed(1)}" y="${VH - 5}" text-anchor="middle" font-size="9" fill="#8a96a8">${(items[i].time || "").slice(5, 10)}</text>`).join("")}
+  </svg>`;
+}
+
+function buildDrawdownSVG(items) {
+  const VW = 420, VH = 72;
+  const pL = 46, pR = 10, pT = 6, pB = 24;
+  const cW = VW - pL - pR, cH = VH - pT - pB;
+  const n  = items.length;
+  const dds  = items.map(p => p.drawdown || 0);
+  const minDD = Math.min(...dds);
+
+  if (minDD === 0) {
+    return `<svg viewBox="0 0 ${VW} ${VH}" width="100%" height="${VH}" style="display:block;">
+      <rect width="${VW}" height="${VH}" fill="#0d1319"/>
+      <text x="${VW / 2}" y="${VH / 2 + 4}" text-anchor="middle" font-size="10" fill="#8a96a8">No drawdown</text>
+    </svg>`;
+  }
+
+  const rng  = Math.abs(minDD) || 1;
+  const xS   = i => pL + (n > 1 ? (i / (n - 1)) * cW : cW / 2);
+  const yS   = v => pT + (Math.abs(v) / rng) * cH;
+  const xIdxs = n === 1 ? [0] : [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i);
+
+  const pts  = items.map((p, i) => `${xS(i).toFixed(1)},${yS(p.drawdown || 0).toFixed(1)}`).join(" ");
+  const fill = [`${xS(0).toFixed(1)},${pT}`,
+                ...items.map((p, i) => `${xS(i).toFixed(1)},${yS(p.drawdown || 0).toFixed(1)}`),
+                `${xS(n - 1).toFixed(1)},${pT}`].join(" ");
+
+  return `<svg viewBox="0 0 ${VW} ${VH}" width="100%" height="${VH}" style="display:block;">
+    <rect width="${VW}" height="${VH}" fill="#0d1319"/>
+    <line x1="${pL}" y1="${pT}" x2="${VW - pR}" y2="${pT}" stroke="#212a37" stroke-width="1" stroke-dasharray="3,3"/>
+    <polygon points="${fill}" fill="#e052521a"/>
+    <polyline points="${pts}" fill="none" stroke="#e05252" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="${pL - 4}" y="${(pT + 4).toFixed(1)}" text-anchor="end" font-size="9" fill="#8a96a8">$0</text>
+    <text x="${pL - 4}" y="${(pT + cH + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#8a96a8">-$${Math.abs(Math.round(minDD))}</text>
+    ${xIdxs.map(i => `<text x="${xS(i).toFixed(1)}" y="${VH - 5}" text-anchor="middle" font-size="9" fill="#8a96a8">${(items[i].time || "").slice(5, 10)}</text>`).join("")}
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Performance Analytics — render functions
+// ---------------------------------------------------------------------------
+
+function renderEquityCurve(data) {
+  const root = el("equityCurvePanel");
+  if (!root) return;
+
+  const items   = (data && data.items)   || [];
+  const summary = (data && data.summary) || null;
+
+  if (!items.length) {
+    root.innerHTML = "<div class='muted'>No analytics data available — import NT8 trades first.</div>";
+    return;
+  }
+
+  const curPnl  = summary ? (summary.current_cumulative_pnl || 0) : 0;
+  const maxDD   = summary ? (summary.max_drawdown || 0) : 0;
+  const peak    = summary ? (summary.peak_pnl || 0) : 0;
+  const pnlCls  = curPnl >= 0 ? "text-success" : "text-danger";
+  const ddStr   = maxDD < 0 ? `-$${fmtComma(Math.abs(maxDD))}` : "$0.00";
+
+  root.innerHTML = `
+    <div class="perf-chart-label">
+      <span class="muted">Cumulative PnL</span>
+      <span class="${pnlCls}" style="font-weight:700">${curPnl >= 0 ? "+" : ""}$${fmtComma(curPnl)}</span>
+    </div>
+    <div class="perf-chart-wrap">${buildEquitySVG(items)}</div>
+    <div class="perf-chart-label">
+      <span class="muted">Drawdown</span>
+      <span class="text-danger" style="font-weight:600">${ddStr}</span>
+    </div>
+    <div class="perf-chart-wrap">${buildDrawdownSVG(items)}</div>
+    <div class="perf-chart-footer">
+      <span><span class="muted">Peak</span> +$${fmtComma(peak)}</span>
+      <span><span class="muted">Max DD</span> <span class="text-danger">${ddStr}</span></span>
+      <span><span class="muted">Trades</span> ${items.length}</span>
+    </div>
+  `;
+}
+
+function renderPerformanceSummary(data) {
+  const root = el("performanceSummaryPanel");
+  if (!root) return;
+
+  if (!data || !data.total_trades) {
+    root.innerHTML = "<div class='muted'>No analytics data available — import NT8 trades first.</div>";
+    return;
+  }
+
+  const d       = data;
+  const streak  = d.current_streak || {};
+  const strkCls = streak.type === "wins" ? "text-success" : streak.type === "losses" ? "text-danger" : "";
+  const strkStr = streak.count ? `${streak.count}${streak.type === "wins" ? "W" : "L"}` : "—";
+
+  const pfStr   = d.profit_factor  != null ? fmtNum(d.profit_factor)  : "—";
+  const shStr   = d.sharpe_ratio   != null ? fmtNum(d.sharpe_ratio)   : "—";
+  const awStr   = d.avg_win        != null ? `+$${fmtComma(d.avg_win)}`   : "—";
+  const alStr   = d.avg_loss       != null ? `-$${fmtComma(Math.abs(d.avg_loss))}` : "—";
+  const ddStr   = d.max_drawdown < 0 ? `-$${fmtComma(Math.abs(d.max_drawdown))}` : "$0.00";
+  const ddPct   = d.max_drawdown_pct != null ? `(${Math.abs(d.max_drawdown_pct).toFixed(1)}%)` : "";
+
+  const wrCls   = (d.win_rate || 0) >= 50 ? "text-success" : "text-danger";
+  const pfCls   = (d.profit_factor || 0) >= 1.2 ? "text-success" : "text-warn";
+  const expCls  = (d.expectancy || 0) >= 0 ? "text-success" : "text-danger";
+  const pnlCls  = (d.total_pnl  || 0) >= 0 ? "text-success" : "text-danger";
+
+  const metrics = [
+    { label: "Win Rate",      value: `${d.win_rate || 0}%`,                       cls: wrCls  },
+    { label: "Profit Factor", value: pfStr,                                         cls: pfCls  },
+    { label: "Expectancy",    value: d.expectancy != null ? `+$${fmtComma(d.expectancy)}` : "—", cls: expCls },
+    { label: "Max Drawdown",  value: `${ddStr} ${ddPct}`.trim(),                   cls: "text-danger" },
+    { label: "Sharpe",        value: shStr,                                         cls: "" },
+    { label: "Total PnL",     value: `${(d.total_pnl||0) >= 0 ? "+" : ""}$${fmtComma(d.total_pnl||0)}`, cls: pnlCls },
+    { label: "Avg Win",       value: awStr,                                         cls: "text-success" },
+    { label: "Avg Loss",      value: alStr,                                         cls: "text-danger" },
+    { label: "Trades",        value: String(d.total_trades || 0),                  cls: "" },
+    { label: "Best W Streak", value: `${d.best_win_streak || 0}W`,                 cls: "text-success" },
+    { label: "Best L Streak", value: `${d.best_loss_streak || 0}L`,                cls: "text-danger" },
+    { label: "Cur. Streak",   value: strkStr,                                      cls: strkCls },
+  ];
+
+  // Monthly returns mini-list
+  const monthly = (d.monthly_returns || []);
+  const maxMonthPnl = Math.max(...monthly.map(m => Math.abs(m.total_pnl || 0)), 1);
+  const monthlyHtml = monthly.length ? `
+    <div class="compliance-section-label" style="margin-top:10px;">Monthly Returns</div>
+    ${monthly.map(m => {
+      const pnl  = m.total_pnl || 0;
+      const bw   = Math.min(100, (Math.abs(pnl) / maxMonthPnl) * 100).toFixed(0);
+      const bc   = pnl >= 0 ? "var(--success)" : "var(--danger)";
+      const cls  = pnl >= 0 ? "text-success" : "text-danger";
+      return `<div class="monthly-bar-row">
+        <span class="muted" style="width:52px;flex-shrink:0">${escapeHtml(m.month)}</span>
+        <div style="flex:1;height:6px;background:#1b2531;border-radius:999px;overflow:hidden;">
+          <div class="monthly-bar-fill" style="width:${bw}%;background:${bc};"></div>
+        </div>
+        <span class="${cls}" style="width:70px;text-align:right">${pnl >= 0 ? "+" : ""}$${fmtComma(pnl)}</span>
+        <span class="muted">${m.trade_count}T ${m.wins}W/${m.losses}L</span>
+      </div>`;
+    }).join("")}
+  ` : "";
+
+  root.innerHTML = `
+    <div class="perf-grid">
+      ${metrics.map(m => `
+        <div class="perf-block">
+          <div class="perf-block-label">${escapeHtml(m.label)}</div>
+          <div class="perf-block-value ${m.cls}">${escapeHtml(m.value)}</div>
+        </div>
+      `).join("")}
+    </div>
+    ${monthlyHtml}
+  `;
+}
+
 function complianceStatusClass(status) {
   switch ((status || "").toUpperCase()) {
     case "SAFE":      return "cs-safe";
@@ -843,7 +1038,7 @@ async function refresh() {
       const pill = el("apiStatus");
       if (pill) { pill.className = "status-pill online"; pill.textContent = "API Online"; }
 
-      const [queue, rankings, pipeline, propFirm, activity, nt8Acct, nt8Trd, attr, compliance] = await Promise.all([
+      const [queue, rankings, pipeline, propFirm, activity, nt8Acct, nt8Trd, attr, compliance, equity, perf] = await Promise.all([
         apiFetch("/strategy-queue"),
         apiFetch("/research-rankings"),
         apiFetch("/pipeline-status"),
@@ -853,6 +1048,8 @@ async function refresh() {
         apiFetch("/nt8-trades"),
         apiFetch("/strategy-attribution"),
         apiFetch("/compliance-status"),
+        apiFetch("/equity-curve"),
+        apiFetch("/performance-summary"),
       ]);
 
       if (queue)    renderQueue(queue.items || []);
@@ -864,6 +1061,8 @@ async function refresh() {
       renderNT8Trades(nt8Trd     || { count: 0, items: [] });
       renderAttribution(attr      || { count: 0, items: [] });
       renderCompliance(compliance || { firm_status: "OFFLINE", accounts: [], strategies: [] });
+      renderEquityCurve(equity    || { count: 0, items: [], summary: null });
+      renderPerformanceSummary(perf || null);
 
       // Panels without live endpoints yet → keep mock
       const [mf, app, rej, asset, risk, regime, fwd] = await Promise.all([
@@ -926,6 +1125,8 @@ async function refresh() {
     renderNT8Trades({ count: 0, items: [] });
     renderAttribution({ count: 0, items: [] });
     renderCompliance({ firm_status: "OFFLINE", accounts: [], strategies: [] });
+    renderEquityCurve({ count: 0, items: [], summary: null });
+    renderPerformanceSummary(null);
 
     el("lastUpdated").textContent = new Date().toISOString();
     logActivity("API offline — using mock data");

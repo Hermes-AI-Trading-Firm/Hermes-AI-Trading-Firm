@@ -543,3 +543,130 @@ def compliance_status(conn: sqlite3.Connection) -> Dict[str, Any]:
         "strategy_count":    report.get("strategy_count", 0),
         "strategies":        report.get("strategies", []),
     }
+
+
+# ---------------------------------------------------------------------------
+# /equity-curve
+# ---------------------------------------------------------------------------
+
+def _load_trades_for_analytics(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+    """Shared helper — loads nt8_trades ordered by exit_time (close time)."""
+    cur = conn.execute("""
+        SELECT
+            COALESCE(exit_time, entry_time) AS entry_time,
+            pnl,
+            commission,
+            symbol,
+            direction,
+            strategy_id
+        FROM nt8_trades
+        ORDER BY COALESCE(exit_time, entry_time) ASC, entry_time ASC
+    """)
+    cols = [d[0] for d in cur.description]
+    return [{cols[i]: r[i] for i in range(len(cols))} for r in cur.fetchall()]
+
+
+def equity_curve(conn: sqlite3.Connection) -> Dict[str, Any]:
+    try:
+        trades = _load_trades_for_analytics(conn)
+    except Exception as exc:
+        return {"error": str(exc), "count": 0, "items": [], "summary": None}
+
+    if not trades:
+        return {"count": 0, "items": [], "summary": None}
+
+    try:
+        from research.analytics.equity import build_equity_curve as _build_eq  # type: ignore
+        from research.analytics.equity import build_drawdown_curve as _build_dd
+        from research.analytics.performance import calculate_max_drawdown as _max_dd
+    except ImportError as exc:
+        return {"error": str(exc), "count": 0, "items": [], "summary": None}
+
+    curve = _build_dd(_build_eq(trades))
+    dd    = _max_dd(curve)
+
+    return {
+        "count": len(curve),
+        "items": curve,
+        "summary": {
+            "current_cumulative_pnl": curve[-1]["cumulative_pnl"] if curve else 0.0,
+            "peak_pnl":               max(p["peak"] for p in curve) if curve else 0.0,
+            "max_drawdown":           dd["max_drawdown"],
+            "max_drawdown_pct":       dd["max_drawdown_pct"],
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# /performance-summary
+# ---------------------------------------------------------------------------
+
+def performance_summary(conn: sqlite3.Connection) -> Dict[str, Any]:
+    _empty: Dict[str, Any] = {
+        "total_trades":    0,
+        "total_pnl":       0.0,
+        "win_rate":        0.0,
+        "expectancy":      0.0,
+        "profit_factor":   None,
+        "sharpe_ratio":    None,
+        "max_drawdown":    0.0,
+        "max_drawdown_pct": 0.0,
+        "avg_win":         None,
+        "avg_loss":        None,
+        "current_streak":  {"type": "none", "count": 0},
+        "best_win_streak": 0,
+        "best_loss_streak": 0,
+        "monthly_returns": [],
+    }
+
+    try:
+        trades = _load_trades_for_analytics(conn)
+    except Exception as exc:
+        return {**_empty, "error": str(exc)}
+
+    if not trades:
+        return _empty
+
+    try:
+        from research.analytics.equity import (  # type: ignore
+            build_equity_curve as _eq,
+            build_drawdown_curve as _dd,
+            build_monthly_returns as _monthly,
+        )
+        from research.analytics.performance import (
+            calculate_win_rate as _wr,
+            calculate_expectancy as _exp,
+            calculate_profit_factor as _pf,
+            calculate_sharpe_ratio as _sharpe,
+            calculate_max_drawdown as _mdd,
+            calculate_consecutive_wins_losses as _streaks,
+        )
+    except ImportError as exc:
+        return {**_empty, "error": str(exc)}
+
+    curve   = _dd(_eq(trades))
+    mdd     = _mdd(curve)
+    streaks = _streaks(trades)
+    monthly = _monthly(trades)
+
+    wins   = [t for t in trades if float(t.get("pnl") or 0.0) > 0]
+    losses = [t for t in trades if float(t.get("pnl") or 0.0) <= 0]
+    avg_win  = round(sum(float(t.get("pnl") or 0) for t in wins)   / len(wins),   2) if wins   else None
+    avg_loss = round(sum(float(t.get("pnl") or 0) for t in losses) / len(losses), 2) if losses else None
+
+    return {
+        "total_trades":    len(trades),
+        "total_pnl":       round(sum(float(t.get("pnl") or 0) for t in trades), 2),
+        "win_rate":        _wr(trades),
+        "expectancy":      _exp(trades),
+        "profit_factor":   _pf(trades),
+        "sharpe_ratio":    _sharpe(trades),
+        "max_drawdown":    mdd["max_drawdown"],
+        "max_drawdown_pct": mdd["max_drawdown_pct"],
+        "avg_win":         avg_win,
+        "avg_loss":        avg_loss,
+        "current_streak":  streaks["current_streak"],
+        "best_win_streak": streaks["best_win_streak"],
+        "best_loss_streak": streaks["best_loss_streak"],
+        "monthly_returns": monthly,
+    }
