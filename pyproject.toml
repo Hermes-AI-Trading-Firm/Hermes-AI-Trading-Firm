@@ -1,0 +1,11 @@
+[project]
+name = "hermes-ai-trading-firm"
+version = "0.1.0"
+description = "Hermes AI Trading Firm research engines"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "pandas",
+    "scipy",
+]
