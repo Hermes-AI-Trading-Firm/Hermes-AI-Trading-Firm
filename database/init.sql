@@ -299,6 +299,102 @@ CREATE INDEX IF NOT EXISTS idx_notes_spec ON research_notes(spec_id);
 CREATE INDEX IF NOT EXISTS idx_notes_type ON research_notes(note_type);
 CREATE INDEX IF NOT EXISTS idx_notes_tags ON research_notes(tags);
 
+-- Scoring Results
+CREATE TABLE IF NOT EXISTS scoring_results (
+    scoring_id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    spec_id                 INTEGER NOT NULL,
+    composite_score         REAL NOT NULL,
+    grade                   TEXT NOT NULL,   -- A+, A, B, C, D, Reject
+    recommendation          TEXT NOT NULL,   -- Reject, Retest, Optimize, Forward Test, Live Candidate
+    profitability_score     REAL,
+    drawdown_score          REAL,
+    consistency_score       REAL,
+    walk_forward_score      REAL,
+    monte_carlo_score       REAL,
+    regime_score            REAL,
+    robustness_score        REAL,
+    prop_firm_score         REAL,
+    explainability_score    REAL,
+    overfitting_risk        REAL,
+    monte_carlo_pass        INTEGER DEFAULT 0,   -- 1 = pass
+    walk_forward_pass       INTEGER DEFAULT 0,   -- 1 = pass
+    prop_firm_supported     INTEGER DEFAULT 0,   -- 1 = eligible
+    prop_firm_support_json  TEXT,                -- full prop_firm_review() dict
+    overfit_warnings_json   TEXT,                -- JSON array of warning strings
+    scored_at               TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (spec_id) REFERENCES strategy_specs(spec_id)
+);
+CREATE INDEX IF NOT EXISTS idx_scoring_spec    ON scoring_results(spec_id);
+CREATE INDEX IF NOT EXISTS idx_scoring_score   ON scoring_results(composite_score);
+CREATE INDEX IF NOT EXISTS idx_scoring_grade   ON scoring_results(grade);
+CREATE INDEX IF NOT EXISTS idx_scoring_time    ON scoring_results(scored_at);
+
+-- Prop Firm Profiles
+CREATE TABLE IF NOT EXISTS prop_firm_profiles (
+    profile_id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    firm_name               TEXT NOT NULL,
+    account_label           TEXT NOT NULL,      -- e.g. "50K", "100K"
+    account_size            REAL NOT NULL,
+    trailing_drawdown_limit REAL NOT NULL,      -- fraction, e.g. 0.08 = 8%
+    daily_loss_limit        REAL,               -- fraction, e.g. 0.02 = 2%
+    profit_target           REAL,               -- fraction, e.g. 0.10 = 10%
+    min_trading_days        INTEGER,
+    max_position_size       INTEGER,
+    consistency_rule        INTEGER DEFAULT 0,  -- 1 = firm enforces consistency rule
+    allowed_instruments     TEXT,               -- JSON array or free text
+    notes                   TEXT,
+    is_active               INTEGER DEFAULT 1,
+    created_at              TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_profiles_firm   ON prop_firm_profiles(firm_name);
+CREATE INDEX IF NOT EXISTS idx_profiles_active ON prop_firm_profiles(is_active);
+
+-- NT8 Trades
+CREATE TABLE IF NOT EXISTS nt8_trades (
+    nt8_trade_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    strategy_id     TEXT NOT NULL,       -- matches strategy_specs.spec_name or a short tag
+    spec_id         INTEGER,             -- FK when linkable
+    forward_test_id INTEGER,             -- FK when linkable
+    account_id      TEXT,
+    symbol          TEXT NOT NULL,
+    direction       TEXT NOT NULL,       -- LONG, SHORT
+    entry_time      TEXT NOT NULL,
+    exit_time       TEXT NOT NULL,
+    entry_price     REAL NOT NULL,
+    exit_price      REAL NOT NULL,
+    quantity        INTEGER NOT NULL,
+    pnl             REAL NOT NULL,
+    commission      REAL DEFAULT 0.0,
+    slippage        REAL DEFAULT 0.0,
+    atm_template    TEXT,
+    imported_at     TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (spec_id) REFERENCES strategy_specs(spec_id),
+    FOREIGN KEY (forward_test_id) REFERENCES forward_tests(forward_test_id)
+);
+CREATE INDEX IF NOT EXISTS idx_nt8_trades_strategy ON nt8_trades(strategy_id);
+CREATE INDEX IF NOT EXISTS idx_nt8_trades_spec     ON nt8_trades(spec_id);
+CREATE INDEX IF NOT EXISTS idx_nt8_trades_symbol   ON nt8_trades(symbol);
+CREATE INDEX IF NOT EXISTS idx_nt8_trades_entry    ON nt8_trades(entry_time);
+CREATE INDEX IF NOT EXISTS idx_nt8_trades_account  ON nt8_trades(account_id);
+
+-- NT8 Account Snapshots
+CREATE TABLE IF NOT EXISTS nt8_account_snapshots (
+    snapshot_id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id              TEXT NOT NULL,
+    equity                  REAL NOT NULL,
+    daily_pnl               REAL,
+    daily_pnl_pct           REAL,
+    open_drawdown           REAL,
+    trailing_drawdown_used  REAL,
+    trailing_drawdown_limit REAL,
+    daily_loss_limit        REAL,
+    active_strategy_id      TEXT,
+    snapshot_at             TEXT NOT NULL,
+    imported_at             TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_nt8_snap_account ON nt8_account_snapshots(account_id);
+CREATE INDEX IF NOT EXISTS idx_nt8_snap_time    ON nt8_account_snapshots(snapshot_at);
+
 COMMIT TRANSACTION;
 
 -- Insert default asset class values for reference
@@ -315,7 +411,19 @@ INSERT OR IGNORE INTO markets (asset_class, symbol, name, is_active) VALUES
     ('crypto', 'BTCUSDT', 'Bitcoin/Tether', 1),
     ('crypto', 'ETHUSDT', 'Ethereum/Tether', 1);
 
+-- Seed prop firm profiles
+INSERT OR IGNORE INTO prop_firm_profiles
+    (firm_name, account_label, account_size, trailing_drawdown_limit, daily_loss_limit,
+     profit_target, min_trading_days, max_position_size, consistency_rule, notes)
+VALUES
+    ('Apex', '50K', 50000.0, 0.08, 0.02, 0.10, 0,  NULL, 0,
+     'Apex Trader Funding 50K account. 8% trailing drawdown from peak equity. 2% daily loss limit. No minimum trading days. No consistency rule.'),
+    ('Topstep', '50K', 50000.0, 0.06, 0.02, 0.10, 0, NULL, 0,
+     'Topstep 50K Funded account. 6% trailing drawdown. 2% daily loss limit. 5 winning days required for first withdrawal.'),
+    ('FTMO', '50K', 50000.0, 0.10, 0.05, 0.10, 4, NULL, 1,
+     'FTMO 50K account equivalent. 10% max drawdown (static from initial balance). 5% daily loss limit. Minimum 4 trading days. Consistency rule: no single day > 50% of total profit.');
+
 -- Insert a research note about database initialization
-INSERT INTO research_notes (note_type, content, tags, confidence) VALUES 
-    ('observation', 'Database initialized with core schema for Hermes AI Trading Firm.', 
+INSERT INTO research_notes (note_type, content, tags, confidence) VALUES
+    ('observation', 'Database initialized with core schema for Hermes AI Trading Firm.',
      '["database","initialization","setup"]', 100);

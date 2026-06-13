@@ -2,6 +2,8 @@
 
 Generated from `database/init.sql`.
 
+**Tables**: 14 (10 original + 4 added in Phase 1 dashboard data foundation)
+
 ## Tables
 
 ### markets
@@ -199,3 +201,111 @@ AI Learning Brain notes.
 | related_strategies_json | JSON array |
 | confidence | 0-100 |
 | created_at / updated_at | |
+
+---
+
+## Phase 1 Tables (Dashboard Data Foundation)
+
+### scoring_results
+Output of `strategy_scoring.score_strategy()` stored per spec per run.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| scoring_id | PK AUTO | |
+| spec_id | INTEGER FK | → strategy_specs |
+| composite_score | REAL | 0–100 composite score |
+| grade | TEXT | A+, A, B, C, D, Reject |
+| recommendation | TEXT | Reject, Retest, Optimize, Forward Test, Live Candidate |
+| profitability_score | REAL | 0–1 |
+| drawdown_score | REAL | 0–1 |
+| consistency_score | REAL | 0–1 |
+| walk_forward_score | REAL | 0–1 |
+| monte_carlo_score | REAL | 0–1 |
+| regime_score | REAL | 0–1 |
+| robustness_score | REAL | 0–1 |
+| prop_firm_score | REAL | 0–1 |
+| explainability_score | REAL | 0–1 |
+| overfitting_risk | REAL | 0–1 (penalty) |
+| monte_carlo_pass | INTEGER | 1 = pass |
+| walk_forward_pass | INTEGER | 1 = pass |
+| prop_firm_supported | INTEGER | 1 = eligible |
+| prop_firm_support_json | TEXT | Full prop_firm_review() dict as JSON |
+| overfit_warnings_json | TEXT | JSON array of warning strings |
+| scored_at | TEXT | UTC timestamp |
+
+**Indexes**: spec_id, composite_score, grade, scored_at
+
+### prop_firm_profiles
+Named prop firm account constraint profiles. Seeded with Apex 50K, Topstep 50K, FTMO 50K.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| profile_id | PK AUTO | |
+| firm_name | TEXT | e.g. Apex, Topstep, FTMO |
+| account_label | TEXT | e.g. 50K, 100K |
+| account_size | REAL | Nominal account size in USD |
+| trailing_drawdown_limit | REAL | Fraction, e.g. 0.08 = 8% |
+| daily_loss_limit | REAL | Fraction, e.g. 0.02 = 2% |
+| profit_target | REAL | Fraction, e.g. 0.10 = 10% |
+| min_trading_days | INTEGER | Minimum days required |
+| max_position_size | INTEGER | Max contracts/shares (NULL = no limit) |
+| consistency_rule | INTEGER | 1 = firm enforces consistency rule |
+| allowed_instruments | TEXT | Free text or JSON array |
+| notes | TEXT | Human-readable rule summary |
+| is_active | INTEGER | 1 = shown in dashboard dropdown |
+| created_at | TEXT | UTC timestamp |
+
+**Seed data**:
+
+| firm_name | account_label | account_size | trailing_dd | daily_loss | profit_target | consistency |
+|-----------|--------------|-------------|-------------|-----------|--------------|-------------|
+| Apex | 50K | 50 000 | 8% | 2% | 10% | No |
+| Topstep | 50K | 50 000 | 6% | 2% | 10% | No |
+| FTMO | 50K | 50 000 | 10% | 5% | 10% | Yes |
+
+**Indexes**: firm_name, is_active
+
+### nt8_trades
+One row per closed trade imported from NinjaTrader 8 via `nt8_export/nt8_trades.csv`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| nt8_trade_id | PK AUTO | |
+| strategy_id | TEXT | Matches strategy_specs.spec_name or short tag |
+| spec_id | INTEGER FK | → strategy_specs (when linkable) |
+| forward_test_id | INTEGER FK | → forward_tests (when linkable) |
+| account_id | TEXT | NT8 account name, e.g. Sim101 |
+| symbol | TEXT | Instrument symbol |
+| direction | TEXT | LONG or SHORT |
+| entry_time | TEXT | ISO UTC timestamp |
+| exit_time | TEXT | ISO UTC timestamp |
+| entry_price | REAL | |
+| exit_price | REAL | |
+| quantity | INTEGER | Contracts or shares |
+| pnl | REAL | Net P&L after commission and slippage |
+| commission | REAL | DEFAULT 0.0 |
+| slippage | REAL | DEFAULT 0.0 |
+| atm_template | TEXT | ATM strategy template name used |
+| imported_at | TEXT | UTC timestamp of import |
+
+**Indexes**: strategy_id, spec_id, symbol, entry_time, account_id
+
+### nt8_account_snapshots
+Time-series of NT8 account state imported from `nt8_export/nt8_account_state.json`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| snapshot_id | PK AUTO | |
+| account_id | TEXT | NT8 account name |
+| equity | REAL | Current account equity |
+| daily_pnl | REAL | Today's P&L |
+| daily_pnl_pct | REAL | Today's P&L as fraction of account |
+| open_drawdown | REAL | Current open position drawdown |
+| trailing_drawdown_used | REAL | Fraction of trailing DD limit consumed |
+| trailing_drawdown_limit | REAL | Account's trailing DD limit (fraction) |
+| daily_loss_limit | REAL | Account's daily loss limit (fraction) |
+| active_strategy_id | TEXT | Strategy running at snapshot time |
+| snapshot_at | TEXT | ISO UTC timestamp from NT8 |
+| imported_at | TEXT | UTC timestamp of import |
+
+**Indexes**: account_id, snapshot_at
