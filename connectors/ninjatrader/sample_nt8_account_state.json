@@ -1,0 +1,12 @@
+{
+  "account_id": "Sim101",
+  "equity": 100378.50,
+  "daily_pnl": 69.50,
+  "daily_pnl_pct": 0.069,
+  "open_drawdown": 0.0,
+  "trailing_drawdown_used": 242.50,
+  "trailing_drawdown_limit": 4000.0,
+  "daily_loss_limit": 1000.0,
+  "active_strategy_id": "MNQ_ORB_FVG_v001",
+  "snapshot_at": "2026-06-12T09:55:00"
+}
