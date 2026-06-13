@@ -280,6 +280,58 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Research Rankings table */
+.rankings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.rankings-table th {
+  text-align: left;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  padding: 0 10px 8px 0;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.rankings-table td {
+  padding: 8px 10px 8px 0;
+  border-bottom: 1px solid #181f2a;
+  vertical-align: middle;
+}
+.rankings-table tbody tr:last-child td { border-bottom: none; }
+.rankings-table tbody tr:hover td { background: #141c27; }
+.rnk-rank {
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  width: 24px;
+}
+.rnk-name { min-width: 160px; }
+.rnk-strat-name { display: block; font-weight: 500; }
+.rnk-meta { display: block; font-size: 11px; margin-top: 1px; }
+.rnk-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rnk-grade { text-align: center; }
+.rnk-grade-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #1b2531;
+}
+.rnk-grade-badge.text-success { background: #0d2b1e; }
+.rnk-grade-badge.text-warn    { background: #2b2410; }
+.rnk-grade-badge.text-accent  { background: #1d1535; }
+.rnk-grade-badge.text-danger  { background: #2b1010; }
+
 .badge {
   margin-left: 6px;
   background: var(--panel-2);

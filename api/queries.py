@@ -177,48 +177,45 @@ def prop_firm_candidates(
                     "message": "No active prop firm profiles found."}
 
         dd_limit = profile["trailing_drawdown_limit"]
-        daily_limit = profile["daily_loss_limit"] or 1.0
 
-        # Approved strategies with latest scoring and backtest metrics
+        # Top 10 scored strategies ordered by prop-firm suitability then composite score
         cur = conn.execute("""
             SELECT
-                a.approved_strategy_id,
-                a.strategy_name         AS name,
-                a.asset_class,
-                a.symbol,
-                a.timeframe,
-                a.status,
-                a.expected_max_drawdown,
+                ss.spec_id,
+                ss.spec_name            AS name,
+                ss.asset_class,
+                ss.symbol,
+                ss.timeframe,
                 sr.composite_score,
                 sr.grade,
                 sr.prop_firm_supported,
+                sr.drawdown_score,
                 b.profit_factor,
                 b.max_drawdown_pct,
-                b.sharpe_ratio,
-                b.max_consecutive_losses
-            FROM approved_strategies a
-            LEFT JOIN scoring_results sr ON sr.scoring_id = (
-                SELECT MAX(scoring_id) FROM scoring_results WHERE spec_id = a.spec_id
-            )
+                b.sharpe_ratio
+            FROM scoring_results sr
+            JOIN strategy_specs ss ON ss.spec_id = sr.spec_id
             LEFT JOIN backtests b ON b.backtest_id = (
-                SELECT MAX(backtest_id) FROM backtests WHERE spec_id = a.spec_id
+                SELECT MAX(backtest_id) FROM backtests WHERE spec_id = sr.spec_id
             )
             ORDER BY
-                CASE WHEN sr.composite_score IS NULL THEN 1 ELSE 0 END,
+                sr.prop_firm_supported DESC,
                 sr.composite_score DESC
+            LIMIT 10
         """)
         items = _rows(cur)
 
-        # Evaluate eligibility per strategy against the loaded profile
-        for item in items:
+        # Evaluate DD eligibility against the loaded profile
+        for rank, item in enumerate(items, 1):
+            item["rank"] = rank
+            item["profile_id"] = profile["profile_id"]
             mdd = item.get("max_drawdown_pct")
             if mdd is not None:
-                dd_frac = abs(mdd) / 100.0
-                item["dd_within_limit"] = dd_frac <= dd_limit
+                item["dd_within_limit"] = abs(mdd) <= (dd_limit * 100)
+                item["eligible"] = item["dd_within_limit"]
             else:
                 item["dd_within_limit"] = None
-            item["eligible"] = item["dd_within_limit"]
-            item["profile_id"] = profile["profile_id"]
+                item["eligible"] = bool(item.get("prop_firm_supported"))
 
     except Exception as exc:
         return {"error": str(exc), "profile": None, "count": 0, "items": []}

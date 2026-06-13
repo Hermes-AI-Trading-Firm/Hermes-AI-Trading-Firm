@@ -519,41 +519,75 @@ function renderPipelineStatus(data) {
 }
 
 function renderRankings(data) {
-  const root = el("researchRankings");
+  const root    = el("researchRankings");
   const countEl = el("rankingsCount");
   if (!root) return;
   if (countEl) countEl.textContent = data ? (data.count || 0) : 0;
+
   if (!data || !data.items || !data.items.length) {
-    root.innerHTML = "<div class='muted'>No scored strategies yet. Run <code>score_strategy()</code> to populate.</div>";
+    root.innerHTML = "<div class='muted'>No scored strategies yet — run the scoring runner to populate.</div>";
     return;
   }
-  root.innerHTML = data.items.map(s => `
-    <div class="list-item">
-      <div class="item-icon">${assetClassIcon(s.asset_class)}</div>
-      <div>
-        <div class="item-title">${escapeHtml(s.name)}</div>
-        <div class="muted">${escapeHtml(s.symbol || "")} · ${escapeHtml(s.timeframe || "")}</div>
-      </div>
-      <div class="item-value">${s.profit_factor ? `PF ${fmtNum(s.profit_factor)}` : "—"}</div>
-      <div class="item-value ${gradeClass(s.grade)}">${escapeHtml(s.grade || "—")} · ${fmtNum(s.composite_score)}</div>
-    </div>
-  `).join("");
+
+  const rows = data.items.map(s => {
+    const pf      = s.profit_factor   != null ? fmtNum(s.profit_factor)                 : "—";
+    const sharpe  = s.sharpe_ratio    != null ? fmtNum(s.sharpe_ratio)                  : "—";
+    const dd      = s.max_drawdown_pct != null
+      ? `<span class="text-danger">${(s.max_drawdown_pct * 100).toFixed(1)}%</span>`
+      : "—";
+    const compCls = s.prop_firm_supported ? "text-success" : "text-danger";
+    const comp    = s.prop_firm_supported ? "Pass" : "Fail";
+    const gc      = gradeClass(s.grade);
+    const rec     = escapeHtml(s.recommendation || "");
+
+    return `<tr>
+      <td class="rnk-rank">${s.rank}</td>
+      <td class="rnk-name">
+        <span class="rnk-strat-name">${escapeHtml(s.name)}</span>
+        <span class="muted rnk-meta">${escapeHtml(s.symbol || "")}${s.timeframe ? " · " + escapeHtml(s.timeframe) : ""}</span>
+      </td>
+      <td class="rnk-num ${gc}">${fmtNum(s.composite_score)}</td>
+      <td class="rnk-grade"><span class="rnk-grade-badge ${gc}">${escapeHtml(s.grade || "—")}</span></td>
+      <td class="rnk-num">${pf}</td>
+      <td class="rnk-num">${sharpe}</td>
+      <td class="rnk-num">${dd}</td>
+      <td class="rnk-num ${compCls}">${comp}</td>
+    </tr>`;
+  }).join("");
+
+  root.innerHTML = `
+    <table class="rankings-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Strategy</th>
+          <th>Score</th>
+          <th>Grade</th>
+          <th>PF</th>
+          <th>Sharpe</th>
+          <th>DD</th>
+          <th>Compliance</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
 }
 
 function renderPropFirm(data) {
   const profileEl = el("propFirmProfile");
-  const root = el("propFirmCandidates");
+  const root      = el("propFirmCandidates");
   if (!root) return;
 
   if (profileEl && data && data.profile) {
-    const p = data.profile;
-    const ddPct     = ((p.trailing_drawdown_limit || 0) * 100).toFixed(0);
-    const dailyPct  = ((p.daily_loss_limit        || 0) * 100).toFixed(0);
-    const targetPct = ((p.profit_target           || 0) * 100).toFixed(0);
+    const p       = data.profile;
+    const ddPct   = ((p.trailing_drawdown_limit || 0) * 100).toFixed(0);
+    const dailyPct  = ((p.daily_loss_limit || 0) * 100).toFixed(0);
+    const targetPct = ((p.profit_target    || 0) * 100).toFixed(0);
     profileEl.innerHTML = `
       <div class="prop-firm-header">
         <strong>${escapeHtml(p.firm_name)} ${escapeHtml(p.account_label)}</strong>
-        <span class="muted">DD ${ddPct}% · Daily ${dailyPct}% · Target ${targetPct}%</span>
+        <span class="muted">DD ≤${ddPct}% · Daily ≤${dailyPct}% · Target ${targetPct}%</span>
       </div>
     `;
   } else if (profileEl) {
@@ -561,22 +595,51 @@ function renderPropFirm(data) {
   }
 
   if (!data || !data.items || !data.items.length) {
-    root.innerHTML = "<div class='muted'>No approved strategies yet.</div>";
+    root.innerHTML = "<div class='muted'>No scored strategies yet.</div>";
     return;
   }
-  root.innerHTML = data.items.map(s => `
-    <div class="list-item">
-      <div class="item-icon">${assetClassIcon(s.asset_class)}</div>
-      <div>
-        <div class="item-title">${escapeHtml(s.name)}</div>
-        <div class="muted">${escapeHtml(s.symbol || "")} · ${escapeHtml(s.timeframe || "")}</div>
-      </div>
-      <div class="item-value">${s.profit_factor ? `PF ${fmtNum(s.profit_factor)}` : "—"}</div>
-      <div class="item-value ${s.eligible === true ? "text-success" : s.eligible === false ? "text-danger" : ""}">
-        ${s.eligible === true ? "Eligible" : s.eligible === false ? "Review" : "—"}
-      </div>
-    </div>
-  `).join("");
+
+  const rows = data.items.map(s => {
+    const scoreCls = gradeClass(s.grade);
+    const compCls  = s.eligible === true  ? "text-success"
+                   : s.eligible === false ? "text-danger"
+                   : "";
+    const compLabel = s.eligible === true  ? "Pass"
+                    : s.eligible === false ? "Fail"
+                    : "—";
+    const dd = s.max_drawdown_pct != null
+      ? `<span class="text-danger">${(s.max_drawdown_pct * 100).toFixed(1)}%</span>`
+      : "—";
+    const pf = s.profit_factor != null ? fmtNum(s.profit_factor) : "—";
+
+    return `<tr>
+      <td class="rnk-rank">${s.rank}</td>
+      <td class="rnk-name">
+        <span class="rnk-strat-name">${escapeHtml(s.name)}</span>
+        <span class="muted rnk-meta">${escapeHtml(s.symbol || "")}${s.timeframe ? " · " + escapeHtml(s.timeframe) : ""}</span>
+      </td>
+      <td class="rnk-num ${scoreCls}">${fmtNum(s.composite_score)}</td>
+      <td class="rnk-num ${compCls}">${compLabel}</td>
+      <td class="rnk-num">${dd}</td>
+      <td class="rnk-num">${pf}</td>
+    </tr>`;
+  }).join("");
+
+  root.innerHTML = `
+    <table class="rankings-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Strategy</th>
+          <th>Score</th>
+          <th>Compliance</th>
+          <th>Drawdown</th>
+          <th>PF</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
 }
 
 function renderActivityLog(items) {
