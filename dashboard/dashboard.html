@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hermes AI Trading Firm — Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-left">
+            <h1>Hermes AI Trading Firm</h1>
+            <span class="subtitle">Autonomous Strategy Research Pipeline</span>
+        </div>
+        <div class="header-right">
+            <div class="status-pill online">Online</div>
+            <button id="refreshBtn" class="btn primary">Refresh</button>
+            <button id="layoutToggle" class="btn">Layout</button>
+        </div>
+    </header>
+
+    <nav class="topbar">
+        <div class="filter-group">
+            <label>Asset Class</label>
+            <select id="assetClassFilter">
+                <option value="all">All Markets</option>
+                <option value="stocks">Stocks</option>
+                <option value="futures">Futures</option>
+                <option value="options">Options</option>
+                <option value="crypto">Crypto</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Status</label>
+            <select id="statusFilter">
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="forward_testing">Forward Testing</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Regime</label>
+            <select id="regimeFilter">
+                <option value="all">All Regimes</option>
+                <option value="bull">Bull</option>
+                <option value="bear">Bear</option>
+                <option value="sideways">Sideways</option>
+                <option value="transition">Transition</option>
+            </select>
+        </div>
+        <div class="last-updated">Last updated: <span id="lastUpdated">--</span></div>
+    </nav>
+
+    <main class="dashboard">
+        <!-- Row 1 -->
+        <section class="row row-primary">
+            <article class="card widget-focus">
+                <h2>Current Market Focus</h2>
+                <div id="marketFocus" class="widget-content list-widget"></div>
+                <footer class="card-footer">
+                    <a href="#market-selection-desk" class="link">Selection Desk protocol →</a>
+                </footer>
+            </article>
+
+            <article class="card widget-queue">
+                <h2>Strategy Queue <span class="badge" id="queueCount">0</span></h2>
+                <div id="strategyQueue" class="widget-content list-widget"></div>
+                <footer class="card-footer">
+                    <a href="#strategy-queue" class="link">Open queue →</a>
+                </footer>
+            </article>
+
+            <article class="card meter-card">
+                <h2>Firm Health</h2>
+                <div id="firmHealth" class="widget-content meter-widget"></div>
+                <footer class="card-footer">
+                    <span class="muted">Auto-refresh every 5 min</span>
+                </footer>
+            </article>
+        </section>
+
+        <!-- Row 2 -->
+        <section class="row row-secondary">
+            <article class="card">
+                <h2>Approved Strategies</h2>
+                <div id="approvedStrategies" class="widget-content list-widget"></div>
+            </article>
+
+            <article class="card">
+                <h2>Rejected Strategies</h2>
+                <div id="rejectedStrategies" class="widget-content list-widget"></div>
+            </article>
+
+            <article class="card leaderboard">
+                <h2>Best by Asset Class</h2>
+                <div id="bestByAssetClass" class="widget-content list-widget"></div>
+            </article>
+        </section>
+
+        <!-- Row 3 -->
+        <section class="row row-tertiary">
+            <article class="card">
+                <h2>Best Risk-Adjusted Strategy</h2>
+                <div id="bestRiskAdjusted" class="widget-content detail-widget"></div>
+            </article>
+
+            <article class="card">
+                <h2>Best Regime-Filtered Strategy</h2>
+                <div id="bestRegimeFiltered" class="widget-content detail-widget"></div>
+            </article>
+
+            <article class="card">
+                <h2>Forward Testing Candidates</h2>
+                <div id="forwardTestCandidates" class="widget-content list-widget"></div>
+            </article>
+        </section>
+
+        <!-- Row 4 -->
+        <section class="row row-quaternary">
+            <article class="card wide">
+                <h2>Database Status</h2>
+                <div id="databaseStatus" class="widget-content status-widget"></div>
+                <footer class="card-footer">
+                    <code class="muted">Path: database/hermes_research.db</code>
+                </footer>
+            </article>
+
+            <article class="card narrow">
+                <h2>Recent Activity Log</h2>
+                <div id="activityLog" class="widget-content log-widget"></div>
+            </article>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <span>Hermes AI Trading Firm</span>
+        <span class="muted">Dashboard shell — connect to database later</span>
+    </footer>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
