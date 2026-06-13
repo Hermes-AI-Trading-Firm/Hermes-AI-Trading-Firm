@@ -468,3 +468,78 @@ def strategy_attribution(conn: sqlite3.Connection) -> Dict[str, Any]:
         )
 
     return {"count": len(items), "items": items}
+
+
+# ---------------------------------------------------------------------------
+# /compliance-status
+# ---------------------------------------------------------------------------
+
+def compliance_status(conn: sqlite3.Connection) -> Dict[str, Any]:
+    """
+    Run full compliance check via research.risk and return a dashboard-ready
+    dict. Deduplicates accounts by (firm_name, account_label) to handle
+    duplicate seed rows in prop_firm_profiles.
+    """
+    _empty: Dict[str, Any] = {
+        "firm_health_score": None,
+        "firm_status": "UNKNOWN",
+        "account_id": None,
+        "snapshot_at": None,
+        "account_count": 0,
+        "accounts": [],
+        "strategy_count": 0,
+        "strategies": [],
+    }
+
+    try:
+        from research.risk.compliance import run_full_compliance  # type: ignore
+    except ImportError as exc:
+        return {**_empty, "error": f"research.risk not importable: {exc}"}
+
+    try:
+        report = run_full_compliance(conn)
+    except Exception as exc:
+        return {**_empty, "error": str(exc)}
+
+    # Deduplicate accounts (prop_firm_profiles seed inserts 3 × each firm)
+    seen: set = set()
+    deduped: List[Dict[str, Any]] = []
+    for acct in report.get("accounts", []):
+        key = (acct.get("firm_name"), acct.get("account_label"))
+        if key not in seen:
+            seen.add(key)
+            deduped.append(acct)
+
+    # Enrich with dashboard-friendly derived fields
+    for acct in deduped:
+        dd_used  = acct.get("dd_used")  or 0.0
+        dd_limit = acct.get("dd_limit") or 1.0
+        acct["remaining_drawdown"] = round(dd_limit - dd_used, 2)
+        acct["dd_used_pct"]        = round(dd_used / dd_limit * 100, 1) if dd_limit else 0.0
+
+    # Latest snapshot metadata
+    snapshot_at: Optional[str] = None
+    account_id:  Optional[str] = None
+    try:
+        cur = conn.execute("""
+            SELECT account_id, snapshot_at
+            FROM nt8_account_snapshots
+            ORDER BY snapshot_at DESC
+            LIMIT 1
+        """)
+        row = cur.fetchone()
+        if row:
+            account_id, snapshot_at = row[0], row[1]
+    except Exception:
+        pass
+
+    return {
+        "firm_health_score": report.get("firm_health_score"),
+        "firm_status":       report.get("firm_status", "UNKNOWN"),
+        "account_id":        account_id,
+        "snapshot_at":       snapshot_at,
+        "account_count":     len(deduped),
+        "accounts":          deduped,
+        "strategy_count":    report.get("strategy_count", 0),
+        "strategies":        report.get("strategies", []),
+    }

@@ -730,6 +730,107 @@ function renderAttribution(data) {
   }).join("");
 }
 
+function complianceStatusClass(status) {
+  switch ((status || "").toUpperCase()) {
+    case "SAFE":      return "cs-safe";
+    case "WARNING":   return "cs-warning";
+    case "DANGER":    return "cs-danger";
+    case "VIOLATION": return "cs-violation";
+    default:          return "";
+  }
+}
+
+function renderCompliance(data) {
+  const root  = el("compliancePanel");
+  const badge = el("complianceBadge");
+  if (!root) return;
+
+  const status = (data && data.firm_status) || "OFFLINE";
+  const score  = (data && data.firm_health_score) != null ? data.firm_health_score : null;
+  const accts  = (data && data.accounts)   || [];
+  const strats = (data && data.strategies) || [];
+
+  if (badge) {
+    badge.textContent = status;
+    badge.className   = "badge " + complianceStatusClass(status);
+  }
+
+  if (!accts.length) {
+    root.innerHTML = "<div class='muted'>No NT8 account data — run <code>python connectors/ninjatrader/nt8_sync.py</code> then refresh.</div>";
+    return;
+  }
+
+  // Health score bar
+  const scorePct  = score != null ? (score * 100).toFixed(1) : "—";
+  const scoreCls  = score == null ? "" : score >= 0.80 ? "text-success" : score >= 0.50 ? "text-warn" : "text-danger";
+  const cbarCls   = score == null || score >= 0.80 ? "attr-bar-positive" : score >= 0.50 ? "attr-bar-warn" : "attr-bar-negative";
+  const scoreBarW = score != null ? (score * 100).toFixed(1) : "0";
+
+  // Per-account cards
+  const acctCards = accts.map(a => {
+    const sc      = complianceStatusClass(a.status);
+    const ddPct   = (a.dd_used_pct || 0).toFixed(1);
+    const ddW     = Math.min(100, (a.dd_ratio || 0) * 100).toFixed(1);
+    const ddBar   = (a.dd_ratio || 0) >= 0.80 ? "attr-bar-negative"
+                  : (a.dd_ratio || 0) >= 0.50 ? "attr-bar-warn"
+                  : "attr-bar-positive";
+    const pnlCls  = (a.daily_pnl || 0) >= 0 ? "text-success" : "text-danger";
+    const pnlSign = (a.daily_pnl || 0) >= 0 ? "+" : "";
+    const hasIssue = (a.violations || []).length + (a.warnings || []).length > 0;
+    return `
+      <div class="compliance-card${hasIssue ? " compliance-card-alert" : ""}">
+        <div class="compliance-card-header">
+          <span class="item-title">${escapeHtml(a.firm_name)} <span class="muted">${escapeHtml(a.account_label)}</span></span>
+          <span class="compliance-status-badge ${sc}">${escapeHtml(a.status || "—")}</span>
+        </div>
+        <div class="compliance-stats">
+          <span><span class="muted">Equity</span> $${fmtComma(a.equity)}</span>
+          <span><span class="muted">Daily PnL</span> <span class="${pnlCls}">${pnlSign}$${fmtComma(a.daily_pnl || 0)}</span></span>
+          <span><span class="muted">DD Used</span> $${fmtComma(a.dd_used)} <span class="muted">(${ddPct}%)</span></span>
+          <span><span class="muted">Remaining</span> $${fmtComma(a.remaining_drawdown)}</span>
+          <span><span class="muted">Health</span> <span class="${sc}">${((a.health_score || 0) * 100).toFixed(1)}%</span></span>
+        </div>
+        <div class="attr-bar-wrap" style="margin-top:6px;">
+          <div class="attr-bar ${ddBar}" style="width:${ddW}%"></div>
+        </div>
+        ${(a.violations || []).map(v => `<div class="compliance-alert text-danger">✕ ${escapeHtml(v)}</div>`).join("")}
+        ${(a.warnings   || []).map(w => `<div class="compliance-alert text-warn">⚠ ${escapeHtml(w)}</div>`).join("")}
+      </div>
+    `;
+  }).join("");
+
+  // Strategy compliance rows
+  const stratRows = strats.map(s => {
+    const sc     = complianceStatusClass(s.status);
+    const issues = [...(s.violations || []), ...(s.warnings || [])].join(" · ");
+    return `
+      <div class="compliance-strat-row">
+        <span class="item-title">${escapeHtml(s.spec_name)}</span>
+        <span class="muted">${escapeHtml(s.spec_status || "—")}</span>
+        <span class="compliance-status-badge ${sc}">${escapeHtml(s.status || "—")}</span>
+        <span class="compliance-strat-issues muted">${escapeHtml(issues)}</span>
+      </div>
+    `;
+  }).join("");
+
+  const snapLine = data.snapshot_at
+    ? `<div class="muted" style="font-size:0.8em;margin-top:8px;">Snapshot: ${escapeHtml((data.snapshot_at || "").slice(0,16).replace("T"," "))} · Account: ${escapeHtml(data.account_id || "—")}</div>`
+    : "";
+
+  root.innerHTML = `
+    <div class="compliance-health-row">
+      <span class="muted">Firm Health Score</span>
+      <span class="${scoreCls}" style="font-weight:700;font-variant-numeric:tabular-nums;">${scorePct}%</span>
+    </div>
+    <div class="attr-bar-wrap" style="margin-bottom:12px;">
+      <div class="attr-bar ${cbarCls}" style="width:${scoreBarW}%"></div>
+    </div>
+    <div class="compliance-grid">${acctCards}</div>
+    ${strats.length ? `<div class="compliance-section-label">Strategy Compliance</div><div class="compliance-strat-list">${stratRows}</div>` : ""}
+    ${snapLine}
+  `;
+}
+
 // ---------------------------------------------------------------------------
 // REFRESH — tries live API first, falls back to mock
 // ---------------------------------------------------------------------------
@@ -742,7 +843,7 @@ async function refresh() {
       const pill = el("apiStatus");
       if (pill) { pill.className = "status-pill online"; pill.textContent = "API Online"; }
 
-      const [queue, rankings, pipeline, propFirm, activity, nt8Acct, nt8Trd, attr] = await Promise.all([
+      const [queue, rankings, pipeline, propFirm, activity, nt8Acct, nt8Trd, attr, compliance] = await Promise.all([
         apiFetch("/strategy-queue"),
         apiFetch("/research-rankings"),
         apiFetch("/pipeline-status"),
@@ -751,6 +852,7 @@ async function refresh() {
         apiFetch("/nt8-account"),
         apiFetch("/nt8-trades"),
         apiFetch("/strategy-attribution"),
+        apiFetch("/compliance-status"),
       ]);
 
       if (queue)    renderQueue(queue.items || []);
@@ -758,9 +860,10 @@ async function refresh() {
       if (pipeline) { renderPipelineStatus(pipeline); renderFirmHealth(pipelineToHealth(pipeline)); }
       if (propFirm) renderPropFirm(propFirm);
       if (activity) renderActivityLog((activity.items || []).map(normalizeActivity));
-      renderNT8Account(nt8Acct || { snapshot: null });
-      renderNT8Trades(nt8Trd  || { count: 0, items: [] });
-      renderAttribution(attr   || { count: 0, items: [] });
+      renderNT8Account(nt8Acct   || { snapshot: null });
+      renderNT8Trades(nt8Trd     || { count: 0, items: [] });
+      renderAttribution(attr      || { count: 0, items: [] });
+      renderCompliance(compliance || { firm_status: "OFFLINE", accounts: [], strategies: [] });
 
       // Panels without live endpoints yet → keep mock
       const [mf, app, rej, asset, risk, regime, fwd] = await Promise.all([
@@ -822,6 +925,7 @@ async function refresh() {
     renderNT8Account({ snapshot: null });
     renderNT8Trades({ count: 0, items: [] });
     renderAttribution({ count: 0, items: [] });
+    renderCompliance({ firm_status: "OFFLINE", accounts: [], strategies: [] });
 
     el("lastUpdated").textContent = new Date().toISOString();
     logActivity("API offline — using mock data");

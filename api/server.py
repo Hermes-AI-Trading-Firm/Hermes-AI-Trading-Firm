@@ -48,6 +48,7 @@ ROUTES: Dict[str, Callable] = {
         conn, _int((p.get("limit") or [20])[0]) or 20
     ),
     "/strategy-attribution": lambda conn, _p: q.strategy_attribution(conn),
+    "/compliance-status":    lambda conn, _p: q.compliance_status(conn),
 }
 
 

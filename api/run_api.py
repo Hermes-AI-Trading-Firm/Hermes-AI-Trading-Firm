@@ -19,6 +19,7 @@ from pathlib import Path
 _API_DIR = Path(__file__).resolve().parent
 _PROJECT_ROOT = _API_DIR.parent
 sys.path.insert(0, str(_API_DIR))
+sys.path.insert(0, str(_PROJECT_ROOT))  # allows `from research.risk import …`
 
 import server  # noqa: E402
 
