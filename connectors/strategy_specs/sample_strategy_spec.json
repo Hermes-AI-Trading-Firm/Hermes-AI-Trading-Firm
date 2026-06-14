@@ -1,0 +1,18 @@
+{
+  "spec_name": "NQ_OPEN_RANGE_BREAKOUT_v001",
+  "instrument": "NQ",
+  "timeframe": "1 min",
+  "strategy_type": "breakout",
+  "description": "Trade the first 15-minute opening range breakout on NQ futures during the US Regular session. Enter on confirmed close above or below the range; exit at 1.5x range extension or time stop.",
+  "entry_rules": "1. Define the opening range: high and low of the 09:30–09:45 ET candles on the 1-min chart.\n2. Enter LONG on first 1-min close above the range high. Volume must be above 20-period average.\n3. Enter SHORT on first 1-min close below the range low. Same volume filter applies.\n4. One direction only per session — do not reverse.\n5. No new entries after 10:30 ET.",
+  "exit_rules": "Stop: opposite side of the opening range.\nTarget: 1.5x opening range width projected from the breakout level.\nTime exit: close all positions by 11:00 ET if target not reached.\nDo not hold through 10:30 ET without a profit.",
+  "risk_rules": "Max 1 trade per session.\nMax daily loss: 2x opening range width in points.\nPosition size: 1 contract (Sim101 only until human-approved).\nNo re-entry after stop out.",
+  "status": "draft",
+  "session": "US Regular Open (09:30 – 11:00 ET)",
+  "symbol": "NQ",
+  "stop_loss_type": "range",
+  "why_edge_exists": "Opening range breakouts capture directional momentum established in the first 15 minutes of the US session. Institutional order flow frequently drives follow-through on confirmed breakouts above/below the initial range.",
+  "why_strategy_may_fail": "Low-volatility days and choppy open conditions produce false breakouts with immediate reversals. Gap opens wider than the range can invalidate the setup before entry is possible.",
+  "filters": "Avoid days where overnight range exceeds 2x the average opening range.\nAvoid first trading day of the month (often erratic opens).",
+  "optimization_variables": "Range period: 10–20 min. Target multiplier: 1.0–2.5x. Volume threshold: 1.0–1.5x average."
+}

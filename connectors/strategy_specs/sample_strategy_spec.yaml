@@ -1,0 +1,51 @@
+spec_name: ES_VWAP_REVERSION_v001
+instrument: ES
+timeframe: 5 min
+strategy_type: mean-reversion
+description: >
+  Fade extended moves away from VWAP during the US regular session.
+  Enter when price reaches 1.5+ standard deviations from VWAP with a
+  confirming rejection candle. Exit targets VWAP reversion.
+
+entry_rules: >
+  1. Price must be >= 1.5 SD from VWAP (upper or lower band) on the 5-min chart.
+  2. Look for a rejection candle (pin bar or engulfing) closing back inside the band.
+  3. Enter on the close of the rejection candle, in the direction of VWAP.
+  4. Time filter: 09:45 – 15:30 ET only.
+  5. Do not trade within 30 min of major scheduled economic releases.
+
+exit_rules: >
+  Stop: 1.5 ES points above/below entry (6 ticks on ES).
+  Target 1 (50% of position): 0.5 SD reversion toward VWAP.
+  Target 2 (remaining 50%): VWAP itself.
+  Time exit: close all open positions by 15:45 ET regardless of P&L.
+
+risk_rules: >
+  Max 2 trades per session. If both stop out, no more entries that day.
+  Max daily loss: 4 ES points.
+  Position size: 1 contract (Sim101 only until human-approved for forward testing).
+  No trading pre-market or after-hours.
+
+status: draft
+session: US Regular (09:30 – 16:00 ET)
+symbol: ES
+
+stop_loss_type: fixed
+stop_loss_value: 1.5
+profit_target_type: fixed
+profit_target_value: 3.0
+
+why_edge_exists: >
+  VWAP is a widely-watched institutional reference level. Extended deviations
+  tend to mean-revert intraday as algorithms and discretionary traders fade
+  extremes. The rejection candle filters for momentum exhaustion before entry.
+
+why_strategy_may_fail: >
+  Trending days can sustain deviations from VWAP for extended periods.
+  High-volatility macro events (FOMC, CPI) may push price far from VWAP
+  without reversion. The edge degrades in low-volume afternoon sessions.
+
+filters: >
+  Avoid gap days (open > 0.5% from prior close).
+  Avoid first 15 min of session (09:30–09:45).
+  Avoid Fridays before major holidays.
