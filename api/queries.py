@@ -46,6 +46,54 @@ def _parse_json(value: Any) -> Any:
 
 
 # ---------------------------------------------------------------------------
+# Scoring deduplication pattern
+#
+# scoring_results is append-only history: every scoring run adds a new row.
+# Display queries (rankings, prop-firm, decision queue) must show ONE row per
+# strategy — the latest result only.
+#
+# Canonical filter used in every display query:
+#
+#   WHERE sr.scoring_id = (
+#       SELECT MAX(scoring_id) FROM scoring_results WHERE spec_id = sr.spec_id
+#   )
+#
+# The full history is preserved for audit and trend analysis and is never
+# deleted.  Use latest_scoring_results() to surface the deduplicated view.
+# ---------------------------------------------------------------------------
+
+def latest_scoring_results(conn: sqlite3.Connection) -> Dict[str, Any]:
+    """Return the most recent scoring row per spec_id.
+
+    scoring_results is append-only history — use this query for any display
+    that should show one row per strategy.  Full history remains in the table.
+    """
+    try:
+        cur = conn.execute("""
+            SELECT
+                sr.scoring_id,
+                sr.spec_id,
+                ss.spec_name    AS name,
+                sr.composite_score,
+                sr.grade,
+                sr.recommendation,
+                sr.scored_at
+            FROM scoring_results sr
+            JOIN strategy_specs ss ON ss.spec_id = sr.spec_id
+            WHERE sr.scoring_id = (
+                SELECT MAX(scoring_id)
+                FROM scoring_results
+                WHERE spec_id = sr.spec_id
+            )
+            ORDER BY sr.composite_score DESC
+        """)
+        items = _rows(cur)
+    except Exception as exc:
+        return {"error": str(exc), "count": 0, "items": []}
+    return {"count": len(items), "items": items}
+
+
+# ---------------------------------------------------------------------------
 # /health
 # ---------------------------------------------------------------------------
 
@@ -107,6 +155,7 @@ def strategy_queue(conn: sqlite3.Connection) -> Dict[str, Any]:
 
 def research_rankings(conn: sqlite3.Connection) -> Dict[str, Any]:
     try:
+        # Latest score per spec only — scoring_results is append-only history.
         cur = conn.execute("""
             SELECT
                 sr.spec_id,
@@ -139,10 +188,12 @@ def research_rankings(conn: sqlite3.Connection) -> Dict[str, Any]:
             LEFT JOIN backtests b ON b.backtest_id = (
                 SELECT MAX(backtest_id) FROM backtests WHERE spec_id = sr.spec_id
             )
+            WHERE sr.scoring_id = (
+                SELECT MAX(scoring_id) FROM scoring_results WHERE spec_id = sr.spec_id
+            )
             ORDER BY
                 CASE WHEN sr.composite_score IS NULL THEN 1 ELSE 0 END,
-                sr.composite_score DESC,
-                sr.scored_at DESC
+                sr.composite_score DESC
         """)
         items = _rows(cur)
         for rank, item in enumerate(items, 1):
@@ -178,7 +229,7 @@ def prop_firm_candidates(
 
         dd_limit = profile["trailing_drawdown_limit"]
 
-        # Top 10 scored strategies ordered by prop-firm suitability then composite score
+        # Top 10 — latest score per spec only, ordered by prop-firm suitability then score.
         cur = conn.execute("""
             SELECT
                 ss.spec_id,
@@ -197,6 +248,9 @@ def prop_firm_candidates(
             JOIN strategy_specs ss ON ss.spec_id = sr.spec_id
             LEFT JOIN backtests b ON b.backtest_id = (
                 SELECT MAX(backtest_id) FROM backtests WHERE spec_id = sr.spec_id
+            )
+            WHERE sr.scoring_id = (
+                SELECT MAX(scoring_id) FROM scoring_results WHERE spec_id = sr.spec_id
             )
             ORDER BY
                 sr.prop_firm_supported DESC,
@@ -712,6 +766,9 @@ def decision_queue(conn: sqlite3.Connection) -> Dict[str, Any]:
             FROM scoring_results sr
             JOIN strategy_specs ss ON ss.spec_id = sr.spec_id
             WHERE ss.status NOT IN ('approved', 'rejected')
+              AND sr.scoring_id = (
+                  SELECT MAX(scoring_id) FROM scoring_results WHERE spec_id = sr.spec_id
+              )
             ORDER BY
                 CASE sr.recommendation
                     WHEN 'Live Candidate' THEN 1
