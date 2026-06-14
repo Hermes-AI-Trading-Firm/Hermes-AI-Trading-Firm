@@ -131,6 +131,52 @@ def run_batch(
 # ---------------------------------------------------------------------------
 
 
+def run_for_spec(
+    conn:    sqlite3.Connection,
+    spec_id: int,
+    save:    bool = True,
+) -> RunResult:
+    """Score a single spec using its most recent backtest row.
+
+    Parameters
+    ----------
+    conn    : open sqlite3 connection
+    spec_id : strategy_specs.spec_id to score
+    save    : write result to scoring_results (default True)
+
+    Raises
+    ------
+    ValueError if spec_id is not found in strategy_specs.
+    """
+    cur = conn.execute("""
+        SELECT
+            ss.spec_id,
+            b.profit_factor,
+            b.sharpe_ratio,
+            b.max_drawdown_pct     AS max_drawdown,
+            b.win_rate,
+            b.total_trades         AS trades,
+            b.expectancy_per_trade AS expectancy
+        FROM strategy_specs ss
+        LEFT JOIN backtests b ON b.backtest_id = (
+            SELECT MAX(backtest_id) FROM backtests WHERE spec_id = ss.spec_id
+        )
+        WHERE ss.spec_id = ?
+    """, (spec_id,))
+    row = cur.fetchone()
+    if row is None:
+        raise ValueError(f"spec_id={spec_id} not found in strategy_specs")
+
+    cols = [d[0] for d in cur.description]
+    r    = {cols[i]: row[i] for i in range(len(cols))}
+    r.pop("spec_id")
+    bt   = {k: v for k, v in r.items() if v is not None}
+    inp  = ScoringInput(spec_id=spec_id, backtest=bt)
+
+    summary = run_batch([inp], conn=conn, save=save)
+    return summary.results[0]
+
+
 def run_from_db(
     conn: sqlite3.Connection,
     save: bool = True,
