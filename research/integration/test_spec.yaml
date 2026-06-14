@@ -1,0 +1,40 @@
+spec_name: HERMES_INTEGRATION_TEST_v001
+instrument: MNQ
+timeframe: 1 min
+strategy_type: breakout
+description: >
+  Opening Range Breakout on MNQ during the US Regular session.
+  Used exclusively as the Phase 18 integration test fixture.
+  Not a real strategy — do not forward test or promote.
+
+entry_rules: >
+  1. Define opening range: high/low of 09:30–09:45 ET 1-min candles on MNQ.
+  2. Enter LONG on first 1-min close above range high.
+  3. Enter SHORT on first 1-min close below range low.
+  4. One direction per session. No entry after 10:30 ET.
+
+exit_rules: >
+  Stop: opposite side of opening range.
+  Target: 1.5x opening range width from breakout level.
+  Time exit: close all positions by 11:00 ET.
+
+risk_rules: >
+  Max 1 trade per session.
+  Max daily loss: 2x opening range width.
+  Position size: 1 MNQ contract (Sim only — integration test fixture).
+  No re-entry after stop out.
+
+status: draft
+session: US Regular Open (09:30 – 11:00 ET)
+symbol: MNQ
+
+stop_loss_type: range
+profit_target_type: range
+profit_target_value: 1.5
+
+why_edge_exists: >
+  Opening range breakouts capture directional momentum established in the
+  first 15 minutes. Integration test fixture only.
+
+why_strategy_may_fail: >
+  Low-volatility days produce false breakouts. Integration test fixture only.
