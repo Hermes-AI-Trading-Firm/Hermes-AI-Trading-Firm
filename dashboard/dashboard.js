@@ -998,6 +998,60 @@ function complianceStatusClass(status) {
   }
 }
 
+function renderDecisionQueue(data) {
+  const root    = el("decisionQueuePanel");
+  const countEl = el("decisionQueueCount");
+  if (!root) return;
+  if (countEl) countEl.textContent = data ? (data.count || 0) : 0;
+
+  if (!data || !data.items || !data.items.length) {
+    root.innerHTML = "<div class='muted'>No strategies in queue — run the scoring runner to populate.</div>";
+    return;
+  }
+
+  const rows = data.items.map((s, i) => {
+    const gc       = gradeClass(s.grade);
+    const score    = s.composite_score != null ? fmtNum(s.composite_score) : "—";
+    const rec      = escapeHtml(s.recommendation || "—");
+    const reason   = escapeHtml(s.reason || "—");
+    const action   = escapeHtml(s.next_action || "—");
+    const days     = s.days_in_queue != null ? `${s.days_in_queue}d` : "—";
+
+    return `<tr>
+      <td class="rnk-rank">${i + 1}</td>
+      <td class="rnk-name">
+        <span class="rnk-strat-name">${escapeHtml(s.name)}</span>
+        <span class="muted rnk-meta">${escapeHtml(s.asset_class || "")}${s.symbol ? " · " + escapeHtml(s.symbol) : ""}</span>
+      </td>
+      <td class="rnk-num ${gc}">${score}</td>
+      <td class="rnk-grade"><span class="rnk-grade-badge ${gc}">${escapeHtml(s.grade || "—")}</span></td>
+      <td class="rnk-num"><span class="dq-status-badge">${rec}</span></td>
+      <td>
+        <div class="dq-reason">${reason}</div>
+        <div class="dq-action">→ ${action}</div>
+      </td>
+      <td class="rnk-num muted">${days}</td>
+    </tr>`;
+  }).join("");
+
+  root.innerHTML = `
+    <table class="rankings-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Strategy</th>
+          <th>Score</th>
+          <th>Grade</th>
+          <th>Recommendation</th>
+          <th>Reason / Next Action</th>
+          <th>Days</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
 function renderCompliance(data) {
   const root  = el("compliancePanel");
   const badge = el("complianceBadge");
@@ -1101,7 +1155,7 @@ async function refresh() {
       const pill = el("apiStatus");
       if (pill) { pill.className = "status-pill online"; pill.textContent = "API Online"; }
 
-      const [queue, rankings, pipeline, propFirm, activity, nt8Acct, nt8Trd, attr, compliance, equity, perf] = await Promise.all([
+      const [queue, rankings, pipeline, propFirm, activity, nt8Acct, nt8Trd, attr, compliance, equity, perf, dq] = await Promise.all([
         apiFetch("/strategy-queue"),
         apiFetch("/research-rankings"),
         apiFetch("/pipeline-status"),
@@ -1113,6 +1167,7 @@ async function refresh() {
         apiFetch("/compliance-status"),
         apiFetch("/equity-curve"),
         apiFetch("/performance-summary"),
+        apiFetch("/decision-queue"),
       ]);
 
       if (queue)    renderQueue(queue.items || []);
@@ -1126,6 +1181,7 @@ async function refresh() {
       renderCompliance(compliance || { firm_status: "OFFLINE", accounts: [], strategies: [] });
       renderEquityCurve(equity    || { count: 0, items: [], summary: null });
       renderPerformanceSummary(perf || null);
+      renderDecisionQueue(dq      || { count: 0, items: [] });
 
       // Panels without live endpoints yet → keep mock
       const [mf, app, rej, asset, risk, regime, fwd] = await Promise.all([
@@ -1190,6 +1246,7 @@ async function refresh() {
     renderCompliance({ firm_status: "OFFLINE", accounts: [], strategies: [] });
     renderEquityCurve({ count: 0, items: [], summary: null });
     renderPerformanceSummary(null);
+    renderDecisionQueue({ count: 0, items: [] });
 
     el("lastUpdated").textContent = new Date().toISOString();
     logActivity("API offline — using mock data");

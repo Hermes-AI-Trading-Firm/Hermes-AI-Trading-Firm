@@ -667,3 +667,91 @@ def performance_summary(conn: sqlite3.Connection) -> Dict[str, Any]:
         "best_loss_streak": streaks["best_loss_streak"],
         "monthly_returns": monthly,
     }
+
+
+# ---------------------------------------------------------------------------
+# /decision-queue
+# ---------------------------------------------------------------------------
+
+_CLASSIFICATION_MAP = {
+    "Live Candidate": "LIVE_CANDIDATE",
+    "Forward Test":   "FORWARD_TEST_CANDIDATE",
+    "Optimize":       "OPTIMIZATION_CANDIDATE",
+    "Retest":         "NEEDS_RETEST",
+    "Reject":         "REJECTED",
+}
+
+_NEXT_ACTION_MAP = {
+    "Live Candidate": "Human approval required — submit to Forward Testing Journal",
+    "Forward Test":   "Human approval required — submit to Forward Testing Journal",
+    "Optimize":       "Send to Optimization Lab, then re-score",
+    "Retest":         "Extend backtest window, resubmit to Backtesting Lab",
+    "Reject":         "Archive under research/rejected/ with documented reason",
+}
+
+
+def decision_queue(conn: sqlite3.Connection) -> Dict[str, Any]:
+    try:
+        cur = conn.execute("""
+            SELECT
+                ss.spec_id,
+                ss.spec_name                                                       AS name,
+                ss.asset_class,
+                ss.symbol,
+                ss.timeframe,
+                sr.composite_score,
+                sr.grade,
+                sr.recommendation,
+                sr.walk_forward_pass,
+                sr.monte_carlo_pass,
+                sr.prop_firm_supported,
+                sr.overfitting_risk,
+                sr.overfit_warnings_json,
+                sr.scored_at,
+                CAST((julianday('now') - julianday(sr.scored_at)) AS INTEGER)     AS days_in_queue
+            FROM scoring_results sr
+            JOIN strategy_specs ss ON ss.spec_id = sr.spec_id
+            WHERE ss.status NOT IN ('approved', 'rejected')
+            ORDER BY
+                CASE sr.recommendation
+                    WHEN 'Live Candidate' THEN 1
+                    WHEN 'Forward Test'   THEN 2
+                    WHEN 'Optimize'       THEN 3
+                    WHEN 'Retest'         THEN 4
+                    WHEN 'Reject'         THEN 5
+                    ELSE 6
+                END,
+                sr.composite_score DESC
+        """)
+        items = _rows(cur)
+
+        for item in items:
+            rec = item.get("recommendation") or ""
+            item["classification"] = _CLASSIFICATION_MAP.get(rec, "UNCLASSIFIED")
+            item["next_action"]    = _NEXT_ACTION_MAP.get(rec, "Pending review")
+            item["status"]         = "REVIEW_REQUIRED"
+
+            warnings: List[str] = []
+            try:
+                warnings = json.loads(item.get("overfit_warnings_json") or "[]")
+            except (json.JSONDecodeError, TypeError):
+                pass
+            item.pop("overfit_warnings_json", None)
+
+            if warnings:
+                item["reason"] = "; ".join(warnings)
+            elif not item.get("walk_forward_pass") and not item.get("monte_carlo_pass"):
+                item["reason"] = "Walk-forward and Monte Carlo both failed"
+            elif not item.get("walk_forward_pass"):
+                item["reason"] = "Walk-forward degradation too high"
+            elif not item.get("monte_carlo_pass"):
+                item["reason"] = "Monte Carlo failure probability too high"
+            elif (item.get("overfitting_risk") or 0) > 0.3:
+                item["reason"] = "Elevated overfit risk detected"
+            else:
+                item["reason"] = "All validation gates passed"
+
+    except Exception as exc:
+        return {"error": str(exc), "count": 0, "items": []}
+
+    return {"count": len(items), "items": items}
