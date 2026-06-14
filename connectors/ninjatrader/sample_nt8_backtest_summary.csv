@@ -1,0 +1,2 @@
+Strategy,Instrument,Period,Net Profit,Net Profit %,Gross Profit,Gross Loss,Commission,Profit Factor,Max. Drawdown,Max. Drawdown %,Sharpe Ratio,Sortino Ratio,Recovery Factor,# of Trades,% Profitable,Avg. Trade,Avg. Win,Avg. Loss,Max. Win,Max. Loss,Max. Consec. Winners,Max. Consec. Losers,Avg. Bars in Trade,Start Date,End Date
+MNQ_ORB_FVG_v001,MNQ 09-26,1 min,"$4,850.00",48.50%,"$8,250.00","$-3,400.00","$208.00",2.43,"$625.00",6.25%,1.85,2.10,7.76,50,62.00%,"$97.00","$265.32","$-113.33","$720.00","$-425.00",7,4,18,2026-01-02,2026-06-12
