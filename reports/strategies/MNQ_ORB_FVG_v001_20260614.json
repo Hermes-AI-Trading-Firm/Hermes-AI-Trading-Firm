@@ -1,0 +1,36 @@
+{
+  "report_type": "strategy",
+  "generated_at": "2026-06-14T14:36:12Z",
+  "spec_id": 3,
+  "spec_name": "MNQ_ORB_FVG_v001",
+  "asset_class": "MNQ",
+  "symbol": null,
+  "timeframe": null,
+  "status": "spec_created",
+  "scoring": {
+    "composite_score": 80.4,
+    "grade": "A",
+    "recommendation": "Forward Test",
+    "monte_carlo_pass": true,
+    "walk_forward_pass": true,
+    "prop_firm_supported": false,
+    "overfitting_risk": 0.0,
+    "scored_at": "2026-06-13 22:03:53"
+  },
+  "component_scores": {
+    "profitability": 0.8316666666666667,
+    "drawdown": 0.7333333333333333,
+    "consistency": 1.0,
+    "walk_forward": 1.0,
+    "monte_carlo": 0.9,
+    "regime": 0.5723404255319149,
+    "robustness": 0.37,
+    "prop_firm": null,
+    "explainability": 0.9,
+    "overfitting_risk": 0.0
+  },
+  "backtest": {},
+  "classification": "FORWARD_TEST_CANDIDATE",
+  "overfit_warnings": [],
+  "gate_failures": []
+}

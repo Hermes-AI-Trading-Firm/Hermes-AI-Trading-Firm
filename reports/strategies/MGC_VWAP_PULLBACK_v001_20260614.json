@@ -1,0 +1,36 @@
+{
+  "report_type": "strategy",
+  "generated_at": "2026-06-14T14:36:12Z",
+  "spec_id": 2,
+  "spec_name": "MGC_VWAP_PULLBACK_v001",
+  "asset_class": "MGC",
+  "symbol": null,
+  "timeframe": null,
+  "status": "spec_created",
+  "scoring": {
+    "composite_score": 87.17,
+    "grade": "A",
+    "recommendation": "Forward Test",
+    "monte_carlo_pass": true,
+    "walk_forward_pass": true,
+    "prop_firm_supported": false,
+    "overfitting_risk": 0.0,
+    "scored_at": "2026-06-13 22:03:53"
+  },
+  "component_scores": {
+    "profitability": 0.9,
+    "drawdown": 1.0,
+    "consistency": 1.0,
+    "walk_forward": 1.0,
+    "monte_carlo": 0.9,
+    "regime": 0.5709677419354838,
+    "robustness": 0.43176470588235294,
+    "prop_firm": 0.49999999999999994,
+    "explainability": 0.9,
+    "overfitting_risk": 0.0
+  },
+  "backtest": {},
+  "classification": "FORWARD_TEST_CANDIDATE",
+  "overfit_warnings": [],
+  "gate_failures": []
+}

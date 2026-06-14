@@ -1,0 +1,36 @@
+{
+  "report_type": "strategy",
+  "generated_at": "2026-06-14T14:36:12Z",
+  "spec_id": 4,
+  "spec_name": "SPY_WHEEL_STRATEGY_v001",
+  "asset_class": "SPY",
+  "symbol": null,
+  "timeframe": null,
+  "status": "spec_created",
+  "scoring": {
+    "composite_score": 76.86,
+    "grade": "B",
+    "recommendation": "Optimize",
+    "monte_carlo_pass": true,
+    "walk_forward_pass": true,
+    "prop_firm_supported": false,
+    "overfitting_risk": 0.0,
+    "scored_at": "2026-06-13 22:03:53"
+  },
+  "component_scores": {
+    "profitability": 0.7111111111111112,
+    "drawdown": 0.8666666666666667,
+    "consistency": 1.0,
+    "walk_forward": 0.7,
+    "monte_carlo": 0.9,
+    "regime": 0.603030303030303,
+    "robustness": 0.31235294117647056,
+    "prop_firm": null,
+    "explainability": 0.4,
+    "overfitting_risk": 0.0
+  },
+  "backtest": {},
+  "classification": "OPTIMIZATION_CANDIDATE",
+  "overfit_warnings": [],
+  "gate_failures": []
+}

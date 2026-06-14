@@ -1,0 +1,153 @@
+{
+  "generated_at": "2026-06-14T14:36:12Z",
+  "count": 4,
+  "reports": [
+    {
+      "report_type": "strategy",
+      "generated_at": "2026-06-14T14:36:12Z",
+      "spec_id": 2,
+      "spec_name": "MGC_VWAP_PULLBACK_v001",
+      "asset_class": "MGC",
+      "symbol": null,
+      "timeframe": null,
+      "status": "spec_created",
+      "scoring": {
+        "composite_score": 87.17,
+        "grade": "A",
+        "recommendation": "Forward Test",
+        "monte_carlo_pass": true,
+        "walk_forward_pass": true,
+        "prop_firm_supported": false,
+        "overfitting_risk": 0.0,
+        "scored_at": "2026-06-13 22:03:53"
+      },
+      "component_scores": {
+        "profitability": 0.9,
+        "drawdown": 1.0,
+        "consistency": 1.0,
+        "walk_forward": 1.0,
+        "monte_carlo": 0.9,
+        "regime": 0.5709677419354838,
+        "robustness": 0.43176470588235294,
+        "prop_firm": 0.49999999999999994,
+        "explainability": 0.9,
+        "overfitting_risk": 0.0
+      },
+      "backtest": {},
+      "classification": "FORWARD_TEST_CANDIDATE",
+      "overfit_warnings": [],
+      "gate_failures": []
+    },
+    {
+      "report_type": "strategy",
+      "generated_at": "2026-06-14T14:36:12Z",
+      "spec_id": 3,
+      "spec_name": "MNQ_ORB_FVG_v001",
+      "asset_class": "MNQ",
+      "symbol": null,
+      "timeframe": null,
+      "status": "spec_created",
+      "scoring": {
+        "composite_score": 80.4,
+        "grade": "A",
+        "recommendation": "Forward Test",
+        "monte_carlo_pass": true,
+        "walk_forward_pass": true,
+        "prop_firm_supported": false,
+        "overfitting_risk": 0.0,
+        "scored_at": "2026-06-13 22:03:53"
+      },
+      "component_scores": {
+        "profitability": 0.8316666666666667,
+        "drawdown": 0.7333333333333333,
+        "consistency": 1.0,
+        "walk_forward": 1.0,
+        "monte_carlo": 0.9,
+        "regime": 0.5723404255319149,
+        "robustness": 0.37,
+        "prop_firm": null,
+        "explainability": 0.9,
+        "overfitting_risk": 0.0
+      },
+      "backtest": {},
+      "classification": "FORWARD_TEST_CANDIDATE",
+      "overfit_warnings": [],
+      "gate_failures": []
+    },
+    {
+      "report_type": "strategy",
+      "generated_at": "2026-06-14T14:36:12Z",
+      "spec_id": 4,
+      "spec_name": "SPY_WHEEL_STRATEGY_v001",
+      "asset_class": "SPY",
+      "symbol": null,
+      "timeframe": null,
+      "status": "spec_created",
+      "scoring": {
+        "composite_score": 76.86,
+        "grade": "B",
+        "recommendation": "Optimize",
+        "monte_carlo_pass": true,
+        "walk_forward_pass": true,
+        "prop_firm_supported": false,
+        "overfitting_risk": 0.0,
+        "scored_at": "2026-06-13 22:03:53"
+      },
+      "component_scores": {
+        "profitability": 0.7111111111111112,
+        "drawdown": 0.8666666666666667,
+        "consistency": 1.0,
+        "walk_forward": 0.7,
+        "monte_carlo": 0.9,
+        "regime": 0.603030303030303,
+        "robustness": 0.31235294117647056,
+        "prop_firm": null,
+        "explainability": 0.4,
+        "overfitting_risk": 0.0
+      },
+      "backtest": {},
+      "classification": "OPTIMIZATION_CANDIDATE",
+      "overfit_warnings": [],
+      "gate_failures": []
+    },
+    {
+      "report_type": "strategy",
+      "generated_at": "2026-06-14T14:36:12Z",
+      "spec_id": 1,
+      "spec_name": "BTC_REGIME_BREAKOUT_v001",
+      "asset_class": "BTCUSDT",
+      "symbol": null,
+      "timeframe": null,
+      "status": "spec_created",
+      "scoring": {
+        "composite_score": 42.0,
+        "grade": "D",
+        "recommendation": "Reject",
+        "monte_carlo_pass": false,
+        "walk_forward_pass": false,
+        "prop_firm_supported": false,
+        "overfitting_risk": 0.7,
+        "scored_at": "2026-06-13 22:03:53"
+      },
+      "component_scores": {
+        "profitability": 0.6555555555555556,
+        "drawdown": 0.4,
+        "consistency": 0.7,
+        "walk_forward": 0.0,
+        "monte_carlo": 0.2,
+        "regime": null,
+        "robustness": 0.33294117647058824,
+        "prop_firm": null,
+        "explainability": 0.4,
+        "overfitting_risk": 0.7
+      },
+      "backtest": {},
+      "classification": "REJECTED",
+      "overfit_warnings": [
+        "Walk-forward degradation is high.",
+        "Monte Carlo failure probability is high."
+      ],
+      "gate_failures": []
+    }
+  ]
+}

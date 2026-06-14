@@ -1,0 +1,39 @@
+{
+  "report_type": "strategy",
+  "generated_at": "2026-06-14T14:36:12Z",
+  "spec_id": 1,
+  "spec_name": "BTC_REGIME_BREAKOUT_v001",
+  "asset_class": "BTCUSDT",
+  "symbol": null,
+  "timeframe": null,
+  "status": "spec_created",
+  "scoring": {
+    "composite_score": 42.0,
+    "grade": "D",
+    "recommendation": "Reject",
+    "monte_carlo_pass": false,
+    "walk_forward_pass": false,
+    "prop_firm_supported": false,
+    "overfitting_risk": 0.7,
+    "scored_at": "2026-06-13 22:03:53"
+  },
+  "component_scores": {
+    "profitability": 0.6555555555555556,
+    "drawdown": 0.4,
+    "consistency": 0.7,
+    "walk_forward": 0.0,
+    "monte_carlo": 0.2,
+    "regime": null,
+    "robustness": 0.33294117647058824,
+    "prop_firm": null,
+    "explainability": 0.4,
+    "overfitting_risk": 0.7
+  },
+  "backtest": {},
+  "classification": "REJECTED",
+  "overfit_warnings": [
+    "Walk-forward degradation is high.",
+    "Monte Carlo failure probability is high."
+  ],
+  "gate_failures": []
+}
