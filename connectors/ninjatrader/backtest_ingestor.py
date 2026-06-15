@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NT8 Backtest Ingestor — connectors/ninjatrader/backtest_ingestor.py
+NT8 Backtest Ingestor -- connectors/ninjatrader/backtest_ingestor.py
 
 Reads NinjaTrader 8 Strategy Analyzer export files and imports them into
 the backtests table in hermes_research.db.
@@ -8,12 +8,12 @@ the backtests table in hermes_research.db.
 Two accepted file formats (use one or both per run):
 
   --summary   NT8 Performance Summary CSV (one row = one backtest)
-              Produced by: Strategy Analyzer → Performance tab → Export
+              Produced by: Strategy Analyzer -> Performance tab -> Export
               Expected columns: Strategy, Instrument, Start Date, End Date,
               Net Profit, Profit Factor, Max. Drawdown, Sharpe Ratio, etc.
 
   --trade-list  NT8 Trade List CSV (one row per trade)
-                Produced by: Strategy Analyzer → Trades tab → Export
+                Produced by: Strategy Analyzer -> Trades tab -> Export
                 Expected columns: Trade #, Instrument, Market pos., Quantity,
                 Entry time, Exit time, Entry price, Exit price, Profit, etc.
 
@@ -24,14 +24,33 @@ No live trading. No broker connection. No order placement. File import only.
 
 Usage
 -----
-Import summary only:
-    python connectors/ninjatrader/backtest_ingestor.py \\
+Probe a file (no DB required, no spec-id required):
+    python connectors/ninjatrader/backtest_ingestor.py --probe \\
+        --summary path/to/performance_summary.csv
+
+Probe both files:
+    python connectors/ninjatrader/backtest_ingestor.py --probe \\
+        --summary path/to/performance_summary.csv \\
+        --trade-list path/to/trade_list.csv
+
+Probe with log output:
+    python connectors/ninjatrader/backtest_ingestor.py --probe \\
+        --summary path/to/performance_summary.csv \\
+        --log-dir logs/nt8_probe
+
+Validate against a specific spec (no DB write):
+    python connectors/ninjatrader/backtest_ingestor.py --validate-only \\
+        --summary path/to/performance_summary.csv \\
+        --spec-id 3
+
+Dry-run import (parse + validate, no write):
+    python connectors/ninjatrader/backtest_ingestor.py --dry-run \\
         --summary connectors/ninjatrader/sample_nt8_backtest_summary.csv \\
         --spec-id 1
 
-Import trade list only:
+Import summary only:
     python connectors/ninjatrader/backtest_ingestor.py \\
-        --trade-list connectors/ninjatrader/sample_nt8_trade_list.csv \\
+        --summary connectors/ninjatrader/sample_nt8_backtest_summary.csv \\
         --spec-id 1
 
 Import both together (recommended):
@@ -39,11 +58,6 @@ Import both together (recommended):
         --summary  path/to/performance_summary.csv \\
         --trade-list path/to/trade_list.csv \\
         --spec-id 1 --initial-capital 50000
-
-Validate without writing:
-    python connectors/ninjatrader/backtest_ingestor.py \\
-        --summary connectors/ninjatrader/sample_nt8_backtest_summary.csv \\
-        --spec-id 1 --dry-run
 """
 
 from __future__ import annotations
@@ -76,10 +90,10 @@ REQUIRED_TRADE_LIST_COLS: set[str] = {
     "Entry time", "Exit time", "Entry price", "Exit price", "Profit",
 }
 
-# NT8 column name → backtests column name
+# NT8 column name -> backtests column name
 _SUMMARY_MAP: Dict[str, str] = {
     "Net Profit":            "net_profit",
-    "Net Profit %":          "net_profit_pct",       # computed field, not stored directly
+    "Net Profit %":          "net_profit_pct",
     "Gross Profit":          "gross_profit",
     "Gross Loss":            "gross_loss",
     "Commission":            "commission_value",
@@ -100,7 +114,20 @@ _SUMMARY_MAP: Dict[str, str] = {
     "Max. Consec. Losers":   "max_consecutive_losses",
 }
 
+# Structural summary columns that carry metadata but are not in _SUMMARY_MAP
+_SUMMARY_STRUCTURAL: set[str] = {"Strategy", "Instrument", "Period", "Start Date", "End Date"}
+
 VALID_DIRECTIONS = {"Long": "LONG", "Short": "SHORT"}
+
+# ---------------------------------------------------------------------------
+# Sample-file detection
+# ---------------------------------------------------------------------------
+
+_SAMPLE_FILENAME_MARKERS = ("sample", "demo", "example", "fixture")
+
+
+def _is_sample_file(path: Path) -> bool:
+    return any(m in path.stem.lower() for m in _SAMPLE_FILENAME_MARKERS)
 
 
 # ---------------------------------------------------------------------------
@@ -131,11 +158,10 @@ def _clean_num(v: Any) -> Optional[float]:
 
 
 def _pct_to_decimal(v: Any) -> Optional[float]:
-    """Convert NT8 percentage string (e.g. '62.00%' or '62.00') to 0–1 decimal."""
+    """Convert NT8 percentage string (e.g. '62.00%' or '62.00') to 0-1 decimal."""
     f = _clean_num(v)
     if f is None:
         return None
-    # NT8 exports percentages as 0–100; normalize to 0–1
     return f / 100.0 if abs(f) >= 1.0 else f
 
 
@@ -235,7 +261,7 @@ def import_backtest_summary(
         return None, [f"Missing required columns: {sorted(missing)}"]
 
     errors: List[str] = []
-    row = rows[0]  # one row per exported backtest
+    row = rows[0]
 
     if len(rows) > 1:
         errors.append(
@@ -243,7 +269,6 @@ def import_backtest_summary(
             "Export one strategy at a time from Strategy Analyzer."
         )
 
-    # --- parse aggregate fields ---
     start_date = _parse_summary_date(row.get("Start Date", ""))
     end_date   = _parse_summary_date(row.get("End Date", ""))
 
@@ -267,7 +292,6 @@ def import_backtest_summary(
     consec_losses = _int_or_none(row.get("Max. Consec. Losers"))
     commission    = _clean_num(row.get("Commission"))
 
-    # derived
     loss_rate = round(1.0 - win_rate, 6) if win_rate is not None else None
     expectancy = net_profit if total_trades and total_trades > 0 and net_profit is not None else None
     winning_trades = round(total_trades * win_rate) if total_trades and win_rate is not None else None
@@ -275,7 +299,7 @@ def import_backtest_summary(
 
     strategy_name = (row.get("Strategy") or "").strip()
     instrument    = (row.get("Instrument") or "").strip()
-    backtest_name = f"{strategy_name} | {instrument} | {start_date} – {end_date}"
+    backtest_name = f"{strategy_name} | {instrument} | {start_date} - {end_date}"
 
     if not dry_run:
         try:
@@ -342,7 +366,6 @@ def import_backtest_summary(
         except sqlite3.Error as exc:
             return None, errors + [f"Database error: {exc}"]
 
-    # dry-run: validate required numeric fields
     if profit_factor is None:
         errors.append("Warning: Profit Factor could not be parsed")
     if total_trades is None:
@@ -383,7 +406,7 @@ def import_trade_list(
         fields = set(reader.fieldnames or [])
 
     if not rows:
-        return 0, 0, ["CSV is empty — nothing to import"]
+        return 0, 0, ["CSV is empty -- nothing to import"]
 
     missing = REQUIRED_TRADE_LIST_COLS - fields
     if missing:
@@ -396,7 +419,7 @@ def import_trade_list(
         raw_dir = (row.get("Market pos.") or "").strip().capitalize()
         direction = VALID_DIRECTIONS.get(raw_dir)
         if direction is None:
-            errors.append(f"Line {lineno}: unknown Market pos. '{raw_dir}' — skipped")
+            errors.append(f"Line {lineno}: unknown Market pos. '{raw_dir}' -- skipped")
             continue
 
         entry_price = _clean_num(row.get("Entry price"))
@@ -405,7 +428,7 @@ def import_trade_list(
         profit      = _clean_num(row.get("Profit"))
 
         if any(v is None for v in (entry_price, exit_price, quantity, profit)):
-            errors.append(f"Line {lineno}: non-numeric price/quantity/profit — skipped")
+            errors.append(f"Line {lineno}: non-numeric price/quantity/profit -- skipped")
             continue
 
         trade_records.append({
@@ -425,7 +448,7 @@ def import_trade_list(
     if not trade_records:
         return 0, 0, errors + ["No valid trade records found"]
 
-    trade_list_json  = json.dumps(trade_records)
+    trade_list_json   = json.dumps(trade_records)
     equity_curve_json = _build_equity_curve(rows, initial_capital)
 
     if dry_run:
@@ -433,17 +456,15 @@ def import_trade_list(
 
     try:
         if backtest_id is not None:
-            # Attach trade data to existing backtest row
             conn.execute("""
                 UPDATE backtests
-                SET trade_list_json  = ?,
+                SET trade_list_json   = ?,
                     equity_curve_json = ?
                 WHERE backtest_id = ? AND spec_id = ?
             """, (trade_list_json, equity_curve_json, backtest_id, spec_id))
             conn.commit()
             return 1, 0, errors
 
-        # No backtest row yet — derive aggregate metrics from the trade list
         profits = [t["pnl"] for t in trade_records]
         wins    = [p for p in profits if p > 0]
         losses  = [p for p in profits if p <= 0]
@@ -461,7 +482,7 @@ def import_trade_list(
         symbol     = trade_records[0]["symbol"] if trade_records else None
         start_date = trade_records[0]["exit_time"][:10] if trade_records else None
         end_date   = trade_records[-1]["exit_time"][:10] if trade_records else None
-        bt_name    = f"spec_{spec_id} | {symbol} | {start_date} – {end_date}"
+        bt_name    = f"spec_{spec_id} | {symbol} | {start_date} - {end_date}"
 
         cur = conn.execute("""
             INSERT OR IGNORE INTO backtests (
@@ -501,6 +522,296 @@ def import_trade_list(
 
 
 # ---------------------------------------------------------------------------
+# Probe: column map for trade list (probe only -- import_trade_list unchanged)
+# ---------------------------------------------------------------------------
+
+_TRADE_LIST_PROBE_MAP: Dict[str, Tuple[str, str]] = {
+    "Trade #":      ("trade_num",    "int"),
+    "Instrument":   ("symbol",       "str"),
+    "Market pos.":  ("direction",    "str"),
+    "Quantity":     ("quantity",     "int"),
+    "Entry time":   ("entry_time",   "dt"),
+    "Exit time":    ("exit_time",    "dt"),
+    "Entry price":  ("entry_price",  "float"),
+    "Exit price":   ("exit_price",   "float"),
+    "Profit":       ("pnl",          "float"),
+    "Cum. profit":  ("cum_profit",   "float"),
+    "Commission":   ("commission",   "float"),
+    "Slippage":     ("slippage",     "float"),
+    "MAE":          ("mae",          "float"),
+    "MFE":          ("mfe",          "float"),
+    "ETD":          ("etd",          "float"),
+}
+
+
+# ---------------------------------------------------------------------------
+# Probe: Performance Summary
+# ---------------------------------------------------------------------------
+
+def probe_summary(path: Path) -> Dict[str, Any]:
+    """
+    Inspect a Performance Summary CSV without touching the database.
+    Returns a structured result dict. Never writes anything.
+    """
+    r: Dict[str, Any] = {
+        "file":             str(path),
+        "exists":           path.exists(),
+        "is_sample":        _is_sample_file(path),
+        "row_count":        0,
+        "columns_found":    [],
+        "required_present": [],
+        "required_missing": [],
+        "mapped":           {},
+        "unmapped":         [],
+        "parse_warnings":   [],
+        "verdict":          "UNKNOWN",
+    }
+
+    if not path.exists():
+        r["verdict"] = "ERROR -- file not found"
+        return r
+
+    try:
+        with path.open(newline="", encoding="utf-8-sig") as fh:
+            reader = csv.DictReader(fh)
+            rows   = list(reader)
+            fields = list(reader.fieldnames or [])
+    except Exception as exc:
+        r["verdict"] = f"ERROR -- could not read: {exc}"
+        return r
+
+    r["columns_found"] = fields
+    r["row_count"]     = len(rows)
+
+    fields_set = set(fields)
+    r["required_present"] = sorted(REQUIRED_SUMMARY_COLS & fields_set)
+    r["required_missing"] = sorted(REQUIRED_SUMMARY_COLS - fields_set)
+
+    if rows:
+        row = rows[0]
+        for nt8_col, db_col in _SUMMARY_MAP.items():
+            if nt8_col not in fields_set:
+                continue
+            raw = row.get(nt8_col)
+            if db_col in ("win_rate", "max_drawdown_pct", "net_profit_pct"):
+                parsed: Any = _pct_to_decimal(raw)
+            elif db_col in ("total_trades", "max_consecutive_wins", "max_consecutive_losses"):
+                parsed = _int_or_none(raw)
+            else:
+                parsed = _clean_num(raw)
+            r["mapped"][nt8_col] = {"db_col": db_col, "raw": raw, "parsed": parsed}
+            if parsed is None and raw not in (None, "", "-", "N/A", "n/a"):
+                r["parse_warnings"].append(
+                    f"'{nt8_col}' raw='{raw}' could not be parsed to a number"
+                )
+
+    r["unmapped"] = sorted(
+        c for c in fields
+        if c not in _SUMMARY_MAP and c not in _SUMMARY_STRUCTURAL
+    )
+
+    if rows and len(rows) > 1:
+        r["parse_warnings"].append(
+            f"{len(rows)} data rows found; only row 1 will be imported -- "
+            "export one strategy at a time from Strategy Analyzer"
+        )
+
+    if r["required_missing"]:
+        r["verdict"] = "FAIL -- missing required columns"
+    elif r["parse_warnings"]:
+        r["verdict"] = "WARN -- parse issues detected"
+    else:
+        r["verdict"] = "READY"
+
+    return r
+
+
+# ---------------------------------------------------------------------------
+# Probe: Trade List
+# ---------------------------------------------------------------------------
+
+def probe_trade_list(path: Path, initial_capital: Optional[float] = None) -> Dict[str, Any]:
+    """
+    Inspect a Trade List CSV without touching the database.
+    Returns a structured result dict. Never writes anything.
+    """
+    r: Dict[str, Any] = {
+        "file":                    str(path),
+        "exists":                  path.exists(),
+        "is_sample":               _is_sample_file(path),
+        "row_count":               0,
+        "columns_found":           [],
+        "required_present":        [],
+        "required_missing":        [],
+        "mapped":                  {},
+        "unmapped":                [],
+        "valid_rows":              0,
+        "skipped_rows":            0,
+        "trade_list_json_count":   0,
+        "equity_curve_json_count": 0,
+        "parse_warnings":          [],
+        "verdict":                 "UNKNOWN",
+    }
+
+    if not path.exists():
+        r["verdict"] = "ERROR -- file not found"
+        return r
+
+    try:
+        with path.open(newline="", encoding="utf-8-sig") as fh:
+            reader = csv.DictReader(fh)
+            rows   = list(reader)
+            fields = list(reader.fieldnames or [])
+    except Exception as exc:
+        r["verdict"] = f"ERROR -- could not read: {exc}"
+        return r
+
+    r["columns_found"] = fields
+    r["row_count"]     = len(rows)
+
+    fields_set = set(fields)
+    r["required_present"] = sorted(REQUIRED_TRADE_LIST_COLS & fields_set)
+    r["required_missing"] = sorted(REQUIRED_TRADE_LIST_COLS - fields_set)
+
+    if rows:
+        row = rows[0]
+        for nt8_col, (db_col, kind) in _TRADE_LIST_PROBE_MAP.items():
+            if nt8_col not in fields_set:
+                continue
+            raw = row.get(nt8_col)
+            if kind == "float":
+                parsed = _clean_num(raw)
+            elif kind == "int":
+                parsed = _int_or_none(raw)
+            elif kind == "dt":
+                parsed = _parse_trade_dt(raw or "")
+            else:
+                parsed = str(raw).strip() if raw else None
+            r["mapped"][nt8_col] = {"db_col": db_col, "raw": raw, "parsed": parsed}
+
+    r["unmapped"] = sorted(c for c in fields if c not in _TRADE_LIST_PROBE_MAP)
+
+    valid: List[Dict] = []
+    for lineno, row in enumerate(rows, start=2):
+        raw_dir   = (row.get("Market pos.") or "").strip().capitalize()
+        direction = VALID_DIRECTIONS.get(raw_dir)
+        if direction is None:
+            r["parse_warnings"].append(
+                f"Line {lineno}: unknown Market pos. '{raw_dir}' -- will skip"
+            )
+            continue
+        ep  = _clean_num(row.get("Entry price"))
+        xp  = _clean_num(row.get("Exit price"))
+        qty = _int_or_none(row.get("Quantity"))
+        pnl = _clean_num(row.get("Profit"))
+        if any(v is None for v in (ep, xp, qty, pnl)):
+            r["parse_warnings"].append(
+                f"Line {lineno}: non-numeric price/qty/profit -- will skip"
+            )
+            continue
+        valid.append(row)
+
+    r["valid_rows"]            = len(valid)
+    r["skipped_rows"]          = len(rows) - len(valid)
+    r["trade_list_json_count"] = len(valid)
+
+    if valid:
+        eq_json = _build_equity_curve(valid, initial_capital)
+        r["equity_curve_json_count"] = len(json.loads(eq_json))
+
+    if r["required_missing"]:
+        r["verdict"] = "FAIL -- missing required columns"
+    elif r["valid_rows"] == 0:
+        r["verdict"] = "FAIL -- no valid trade rows"
+    elif r["skipped_rows"] > 0 or r["parse_warnings"]:
+        r["verdict"] = "WARN -- some rows will be skipped"
+    else:
+        r["verdict"] = "READY"
+
+    return r
+
+
+# ---------------------------------------------------------------------------
+# Probe report formatter
+# ---------------------------------------------------------------------------
+
+def _probe_lines(title: str, r: Dict[str, Any]) -> List[str]:
+    """Return probe report as a list of printable lines (ASCII-safe)."""
+    lines: List[str] = []
+
+    def p(s: str = "") -> None:
+        lines.append(s)
+
+    p(f"Hermes NT8 Probe [{title}]")
+    p(f"  File       : {r['file']}")
+    if r.get("is_sample"):
+        p("  [WARN] Sample file detected -- replace with a real NT8 Strategy Analyzer export")
+
+    if not r.get("exists"):
+        p("  [ERROR] File not found")
+        p()
+        return lines
+
+    p(f"  Rows found : {r['row_count']}")
+    p()
+
+    # Required columns table
+    req_present = set(r.get("required_present", []))
+    req_missing = set(r.get("required_missing", []))
+    all_req     = sorted(req_present | req_missing)
+    p("  Required columns")
+    p(f"  {'Column':<32} Status")
+    p(f"  {'-'*32} ------")
+    for col in all_req:
+        status = "OK" if col in req_present else "MISSING"
+        p(f"  {col:<32} {status}")
+    p()
+
+    # Mapped columns with first-row sample values
+    mapped = r.get("mapped", {})
+    if mapped:
+        p("  Mapped columns  [first row sample]")
+        p(f"  {'NT8 column':<26} {'DB column':<26} Parsed value")
+        p(f"  {'-'*26} {'-'*26} {'-'*20}")
+        for nt8_col, info in mapped.items():
+            pv = str(info["parsed"]) if info["parsed"] is not None else "(null)"
+            p(f"  {nt8_col:<26} {info['db_col']:<26} {pv}")
+        p()
+
+    # Unmapped columns
+    unmapped = r.get("unmapped", [])
+    if unmapped:
+        p(f"  Unmapped columns ({len(unmapped)} -- present in file, not in mapping):")
+        for c in unmapped:
+            p(f"    {c}")
+        p()
+
+    # Trade-list-specific parse counts
+    if "valid_rows" in r:
+        p("  Parse results")
+        p(f"  {'Valid trade rows':<34}: {r['valid_rows']}")
+        p(f"  {'Skipped rows':<34}: {r['skipped_rows']}")
+        p(f"  {'trade_list_json count':<34}: {r['trade_list_json_count']} trades")
+        p(f"  {'equity_curve_json count':<34}: {r['equity_curve_json_count']} points")
+        p()
+
+    # Parse warnings
+    warnings = r.get("parse_warnings", [])
+    if warnings:
+        p("  Parse warnings:")
+        for w in warnings:
+            p(f"    [WARN] {w}")
+    else:
+        p("  Parse warnings: none")
+    p()
+
+    p(f"  Verdict: {r.get('verdict', 'UNKNOWN')}")
+    p()
+
+    return lines
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -523,9 +834,9 @@ def main() -> None:
     parser.add_argument(
         "--spec-id",
         type=int,
-        required=True,
+        default=None,
         metavar="ID",
-        help="strategy_specs.spec_id this backtest belongs to",
+        help="strategy_specs.spec_id this backtest belongs to (not required for --probe)",
     )
     parser.add_argument(
         "--initial-capital",
@@ -552,6 +863,31 @@ def main() -> None:
         help="Path to hermes_research.db",
     )
     parser.add_argument(
+        "--probe",
+        action="store_true",
+        help=(
+            "Inspect CSV file(s) and report column mapping, parse results, "
+            "and readiness. No DB connection required. No writes."
+        ),
+    )
+    parser.add_argument(
+        "--validate-only",
+        action="store_true",
+        help=(
+            "Run probe diagnostics AND verify --spec-id exists in the DB. "
+            "No import. No writes."
+        ),
+    )
+    parser.add_argument(
+        "--log-dir",
+        default=None,
+        metavar="DIR",
+        help=(
+            "Directory to write probe/validate log files. "
+            "Logs are NOT written unless this flag is provided."
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate and parse without writing to the database",
@@ -560,6 +896,127 @@ def main() -> None:
 
     if not args.summary and not args.trade_list:
         parser.error("At least one of --summary or --trade-list is required")
+
+    # --probe: no DB, no spec-id needed
+    if args.probe:
+        exit_code = 0
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_dir   = Path(args.log_dir) if args.log_dir else None
+
+        if log_dir:
+            log_dir.mkdir(parents=True, exist_ok=True)
+
+        if args.summary:
+            result = probe_summary(Path(args.summary))
+            lines  = _probe_lines("Performance Summary", result)
+            for line in lines:
+                print(line)
+            if log_dir:
+                stem     = Path(args.summary).stem
+                log_path = log_dir / f"probe_summary_{stem}_{timestamp}.log"
+                log_path.write_text("\n".join(lines), encoding="utf-8")
+                print(f"  Log: {log_path}")
+                print()
+            if result["verdict"].startswith("FAIL"):
+                exit_code = 1
+
+        if args.trade_list:
+            result = probe_trade_list(Path(args.trade_list), args.initial_capital)
+            lines  = _probe_lines("Trade List", result)
+            for line in lines:
+                print(line)
+            if log_dir:
+                stem     = Path(args.trade_list).stem
+                log_path = log_dir / f"probe_tradelist_{stem}_{timestamp}.log"
+                log_path.write_text("\n".join(lines), encoding="utf-8")
+                print(f"  Log: {log_path}")
+                print()
+            if result["verdict"].startswith("FAIL"):
+                exit_code = 1
+
+        sys.exit(exit_code)
+
+    # --validate-only: probe + spec existence check, no writes
+    if args.validate_only:
+        if args.spec_id is None:
+            parser.error("--spec-id is required for --validate-only")
+
+        exit_code = 0
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_dir   = Path(args.log_dir) if args.log_dir else None
+        all_lines: List[str] = []
+
+        if log_dir:
+            log_dir.mkdir(parents=True, exist_ok=True)
+
+        if args.summary:
+            result = probe_summary(Path(args.summary))
+            lines  = _probe_lines("Performance Summary", result)
+            for line in lines:
+                print(line)
+            all_lines.extend(lines)
+            if result["verdict"].startswith("FAIL"):
+                exit_code = 1
+
+        if args.trade_list:
+            result = probe_trade_list(Path(args.trade_list), args.initial_capital)
+            lines  = _probe_lines("Trade List", result)
+            for line in lines:
+                print(line)
+            all_lines.extend(lines)
+            if result["verdict"].startswith("FAIL"):
+                exit_code = 1
+
+        # Check spec exists in DB
+        db_path = Path(args.db)
+        spec_check_lines: List[str] = []
+
+        def sp(s: str = "") -> None:
+            spec_check_lines.append(s)
+            print(s)
+
+        sp("Hermes NT8 Validate-Only [Spec Check]")
+        sp(f"  spec_id    : {args.spec_id}")
+        sp(f"  DB         : {db_path}")
+
+        if not db_path.exists():
+            sp("  [ERROR] Database not found")
+            sp(f"  Verdict: FAIL -- DB missing")
+            sp()
+            exit_code = 1
+        else:
+            try:
+                conn = sqlite3.connect(f"file:///{db_path}?mode=ro", uri=True)
+                row = conn.execute(
+                    "SELECT spec_name, status FROM strategy_specs WHERE spec_id = ?",
+                    (args.spec_id,),
+                ).fetchone()
+                conn.close()
+                if row:
+                    sp(f"  Spec found : {row[0]}  status={row[1]}")
+                    sp("  Verdict: READY")
+                else:
+                    sp(f"  [ERROR] spec_id={args.spec_id} not found in strategy_specs")
+                    sp("  Verdict: FAIL -- spec not found")
+                    exit_code = 1
+            except sqlite3.Error as exc:
+                sp(f"  [ERROR] DB error: {exc}")
+                sp("  Verdict: FAIL -- DB error")
+                exit_code = 1
+        sp()
+        all_lines.extend(spec_check_lines)
+
+        if log_dir:
+            log_path = log_dir / f"validate_{args.spec_id}_{timestamp}.log"
+            log_path.write_text("\n".join(all_lines), encoding="utf-8")
+            print(f"  Log: {log_path}")
+            print()
+
+        sys.exit(exit_code)
+
+    # Normal import / dry-run mode
+    if args.spec_id is None:
+        parser.error("--spec-id is required for import mode (use --probe to inspect without a spec-id)")
 
     db_path = Path(args.db)
     if not db_path.exists():
@@ -586,7 +1043,6 @@ def main() -> None:
 
         backtest_id: Optional[int] = None
 
-        # ── Summary ──────────────────────────────────────────────────────────
         if args.summary:
             print("--- Performance Summary ---")
             backtest_id, errs = import_backtest_summary(
@@ -609,7 +1065,6 @@ def main() -> None:
                 print(f"  NOTE       : {e}")
             print()
 
-        # ── Trade List ───────────────────────────────────────────────────────
         if args.trade_list:
             print("--- Trade List ---")
             ins, skip, errs = import_trade_list(
@@ -623,7 +1078,7 @@ def main() -> None:
             if args.dry_run:
                 print(f"  Parsed     : {ins} trade(s) valid, {skip} skipped (dry-run)")
             elif backtest_id:
-                print(f"  Updated    : backtest_id={backtest_id} — {ins} trade(s) attached")
+                print(f"  Updated    : backtest_id={backtest_id} -- {ins} trade(s) attached")
             else:
                 print(f"  Inserted   : {ins} backtest row(s), {skip} duplicate(s)")
                 if skip > 0:
