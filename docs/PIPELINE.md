@@ -9,14 +9,13 @@ must align with this model.
 ## Pipeline Overview
 
 ```
-Strategy Spec Import
+Spec Import
     |
     v
-NT8 Backtest Import
+Backtest Import
     |
-    +-- Probe (column mapping, data validation)
-    +-- Validate (spec exists in DB)
-    +-- Import (summary + trade list)
+    +-- Probe / Validate
+    +-- Import
     |
     v
 Score
