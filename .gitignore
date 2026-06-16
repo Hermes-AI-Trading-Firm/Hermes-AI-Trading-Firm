@@ -9,6 +9,7 @@ reports/dashboard_state.json
 reports/strategies/
 reports/audits/
 reports/validation/
+reports/regime/
 api/_server.*
 nt8_export/*
 !nt8_export/.gitkeep
