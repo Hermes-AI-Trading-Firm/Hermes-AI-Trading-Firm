@@ -14,6 +14,8 @@ reports/decision_packages/
 reports/learning/
 reports/patterns/
 reports/archetypes/
+reports/comparison/
+reports/portfolio/
 api/_server.*
 nt8_export/*
 !nt8_export/.gitkeep
