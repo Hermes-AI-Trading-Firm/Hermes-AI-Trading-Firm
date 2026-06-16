@@ -69,6 +69,7 @@ REPORTS_DIR         = _PROJECT_ROOT / "reports"   / "archetypes"
 # Confidence thresholds
 _PRIMARY_THRESHOLD   = 0.20   # minimum score to be assigned as primary
 _SECONDARY_THRESHOLD = 0.12   # minimum score for a secondary archetype
+_HYBRID_GAP          = 0.08   # if top two both exceed primary and are within this gap -> Hybrid
 
 # Field weights: how much each text source contributes to the score
 _FIELD_WEIGHTS = {
@@ -212,7 +213,7 @@ def classify_spec(
     matches:  Dict[str, ArchetypeMatch] = {}
 
     for aid, adef in archetypes.items():
-        if aid == "other":
+        if aid in ("hybrid", "unknown"):
             continue
         keywords = adef.get("keywords", [])
         conf, fields, kws = _score(corpus, keywords)
@@ -231,29 +232,46 @@ def classify_spec(
     # Sort by confidence descending
     ranked = sorted(matches.values(), key=lambda m: -m.confidence)
 
-    # Primary archetype
-    if ranked and ranked[0].confidence >= _PRIMARY_THRESHOLD:
-        primary = ranked[0]
-    else:
-        other_def = archetypes["other"]
+    # Hybrid detection: top two both clear primary threshold within _HYBRID_GAP
+    if (
+        len(ranked) >= 2
+        and ranked[0].confidence >= _PRIMARY_THRESHOLD
+        and ranked[1].confidence >= _PRIMARY_THRESHOLD
+        and (ranked[0].confidence - ranked[1].confidence) <= _HYBRID_GAP
+    ):
+        hybrid_def = archetypes["hybrid"]
+        components = [ranked[0], ranked[1]]
         primary = ArchetypeMatch(
-            archetype_id   = "other",
-            label          = other_def["label"],
+            archetype_id   = "hybrid",
+            label          = hybrid_def["label"],
+            confidence     = ranked[0].confidence,
+            matched_fields = ranked[0].matched_fields + ranked[1].matched_fields,
+            matched_kws    = ranked[0].matched_kws + ranked[1].matched_kws,
+            prior_key      = None,
+            priors         = None,
+        )
+        secondaries = components   # expose components as secondaries
+    elif ranked and ranked[0].confidence >= _PRIMARY_THRESHOLD:
+        primary = ranked[0]
+        secondaries = [
+            m for m in ranked[1:]
+            if m.confidence >= _SECONDARY_THRESHOLD
+        ]
+    else:
+        unknown_def = archetypes["unknown"]
+        primary = ArchetypeMatch(
+            archetype_id   = "unknown",
+            label          = unknown_def["label"],
             confidence     = 0.0,
             matched_fields = [],
             matched_kws    = [],
             prior_key      = None,
             priors         = None,
         )
+        secondaries = []
 
-    # Secondary archetypes (above threshold, not the primary)
-    secondaries = [
-        m for m in ranked
-        if m.archetype_id != primary.archetype_id
-        and m.confidence >= _SECONDARY_THRESHOLD
-    ]
-
-    scores["other"] = 0.0 if primary.archetype_id != "other" else 1.0
+    scores["hybrid"]  = 0.0
+    scores["unknown"] = 0.0 if primary.archetype_id != "unknown" else 1.0
 
     row = conn.execute(
         "SELECT symbol, timeframe FROM strategy_specs WHERE spec_id = ?", (spec_id,)

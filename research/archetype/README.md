@@ -10,14 +10,14 @@ keyword matching against spec metadata. Classifications are stored in
 |-----------|-------------|
 | ORB | Opening Range Breakout -- trades the break of the first N-minute range |
 | VWAP Pullback | VWAP-anchored mean-reversion pullback entries |
-| Mean Reversion | Statistical reversion to equilibrium -- fades extended moves |
-| Trend Following | Directional momentum -- rides sustained trends |
 | FVG Continuation | Fair Value Gap -- enters on return to unfilled imbalance |
+| Mean Reversion | Statistical reversion to equilibrium -- fades extended moves |
+| Trend Following | Directional momentum or level breakout -- rides sustained moves |
 | Liquidity Sweep | Stop hunt / liquidity grab reversal |
-| Breakout | Level or range breakout entry |
 | Options Income | Premium selling / income generation |
 | Statistical Arbitrage | Pairs / cointegration / relative value |
-| Other | Unclassified or mixed archetype |
+| Hybrid | Strategy combines two archetypes at equal weight |
+| Unknown | Insufficient signal -- no dominant archetype detected |
 
 ## Classification method
 
@@ -36,8 +36,9 @@ with the highest score above `0.20` becomes the primary. Additional
 archetypes above `0.12` become secondaries. If nothing clears `0.20`,
 the strategy is classified as `Other`.
 
-A strategy can have one primary and multiple secondaries — for example,
-`MNQ_ORB_FVG_v001` classifies as ORB (primary) + FVG Continuation (secondary).
+A strategy can be `Hybrid` when two archetypes both clear `0.20` and are
+within `0.08` of each other — for example, `MNQ_ORB_FVG_v001` classifies
+as Hybrid (ORB + FVG Continuation). If nothing clears `0.20`, it is `Unknown`.
 
 ## What it does NOT do
 

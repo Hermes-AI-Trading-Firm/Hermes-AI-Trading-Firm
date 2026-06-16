@@ -18,6 +18,16 @@
     ],
     "prior_key": "vwap_pullback"
   },
+  "fvg_continuation": {
+    "label": "FVG Continuation",
+    "description": "Fair Value Gap -- enters on return to unfilled price imbalance",
+    "keywords": [
+      "fvg", "fair value gap", "fair_value_gap",
+      "price imbalance", "imbalance", "order block",
+      "ob entry", "fvg continuation", "gap fill"
+    ],
+    "prior_key": "fvg_continuation"
+  },
   "mean_reversion": {
     "label": "Mean Reversion",
     "description": "Statistical mean reversion -- fades extended moves back to equilibrium",
@@ -30,24 +40,18 @@
   },
   "trend_following": {
     "label": "Trend Following",
-    "description": "Directional trend following -- rides sustained momentum",
+    "description": "Directional trend or breakout -- rides sustained momentum or level breaks",
     "keywords": [
       "trend follow", "trend_follow", "momentum", "ema cross",
       "ma cross", "moving average cross", "trend continuation",
       "higher high", "higher low", "lower high", "lower low",
-      "adx", "supertrend"
+      "adx", "supertrend",
+      "breakout", "break out", "break_out",
+      "level break", "range break", "consolidation break",
+      "resistance break", "support break", "pivot break",
+      "channel break", "donchian", "regime breakout"
     ],
     "prior_key": null
-  },
-  "fvg_continuation": {
-    "label": "FVG Continuation",
-    "description": "Fair Value Gap -- enters on return to unfilled price imbalance",
-    "keywords": [
-      "fvg", "fair value gap", "fair_value_gap",
-      "price imbalance", "imbalance", "order block",
-      "ob entry", "fvg continuation", "gap fill"
-    ],
-    "prior_key": "fvg_continuation"
   },
   "liquidity_sweep": {
     "label": "Liquidity Sweep",
@@ -59,17 +63,6 @@
       "inducement", "sweep", "raid"
     ],
     "prior_key": null
-  },
-  "breakout": {
-    "label": "Breakout",
-    "description": "Range or level breakout -- enters on breach of defined level",
-    "keywords": [
-      "breakout", "break out", "break_out",
-      "level break", "range break", "consolidation break",
-      "resistance break", "support break", "pivot break",
-      "channel break", "donchian"
-    ],
-    "prior_key": "breakout"
   },
   "options_income": {
     "label": "Options Income",
@@ -92,9 +85,15 @@
     ],
     "prior_key": null
   },
-  "other": {
-    "label": "Other",
-    "description": "Unclassified or mixed archetype -- no dominant pattern detected",
+  "hybrid": {
+    "label": "Hybrid",
+    "description": "Strategy combines characteristics of multiple archetypes at equal weight",
+    "keywords": [],
+    "prior_key": null
+  },
+  "unknown": {
+    "label": "Unknown",
+    "description": "Insufficient signal to classify -- no dominant archetype detected",
     "keywords": [],
     "prior_key": null
   }

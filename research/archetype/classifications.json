@@ -1,36 +1,36 @@
 {
   "version": "1",
-  "last_updated": "2026-06-15T21:11:52",
+  "last_updated": "2026-06-15T21:18:24",
   "classifications": {
     "1": {
       "spec_id": 1,
       "spec_name": "BTC_REGIME_BREAKOUT_v001",
       "symbol": "",
       "timeframe": "",
-      "primary": "breakout",
-      "primary_label": "Breakout",
+      "primary": "trend_following",
+      "primary_label": "Trend Following",
       "primary_confidence": 0.4444,
       "secondaries": [],
       "all_archetypes": [
-        "breakout"
+        "trend_following"
       ],
       "all_scores": {
         "orb": 0.0,
         "vwap_pullback": 0.0,
-        "mean_reversion": 0.0,
-        "trend_following": 0.0,
         "fvg_continuation": 0.0,
+        "mean_reversion": 0.0,
+        "trend_following": 0.4444,
         "liquidity_sweep": 0.0,
-        "breakout": 0.4444,
         "options_income": 0.0,
         "statistical_arbitrage": 0.0,
-        "other": 0.0
+        "hybrid": 0.0,
+        "unknown": 0.0
       },
       "matched_kws": [
         "breakout"
       ],
-      "prior_key": "breakout",
-      "classified_at": "2026-06-15T21:11:52"
+      "prior_key": null,
+      "classified_at": "2026-06-15T21:18:24"
     },
     "2": {
       "spec_id": 2,
@@ -47,53 +47,56 @@
       "all_scores": {
         "orb": 0.0,
         "vwap_pullback": 0.4444,
+        "fvg_continuation": 0.0,
         "mean_reversion": 0.1111,
         "trend_following": 0.0,
-        "fvg_continuation": 0.0,
         "liquidity_sweep": 0.0,
-        "breakout": 0.0,
         "options_income": 0.0,
         "statistical_arbitrage": 0.0,
-        "other": 0.0
+        "hybrid": 0.0,
+        "unknown": 0.0
       },
       "matched_kws": [
         "vwap"
       ],
       "prior_key": "vwap_pullback",
-      "classified_at": "2026-06-15T21:11:52"
+      "classified_at": "2026-06-15T21:18:24"
     },
     "3": {
       "spec_id": 3,
       "spec_name": "MNQ_ORB_FVG_v001",
       "symbol": "",
       "timeframe": "",
-      "primary": "orb",
-      "primary_label": "ORB",
+      "primary": "hybrid",
+      "primary_label": "Hybrid",
       "primary_confidence": 0.4444,
       "secondaries": [
+        "orb",
         "fvg_continuation"
       ],
       "all_archetypes": [
+        "hybrid",
         "orb",
         "fvg_continuation"
       ],
       "all_scores": {
         "orb": 0.4444,
         "vwap_pullback": 0.0,
-        "mean_reversion": 0.0,
-        "trend_following": 0.0,
         "fvg_continuation": 0.4444,
+        "mean_reversion": 0.0,
+        "trend_following": 0.1111,
         "liquidity_sweep": 0.0,
-        "breakout": 0.1111,
         "options_income": 0.0,
         "statistical_arbitrage": 0.0,
-        "other": 0.0
+        "hybrid": 0.0,
+        "unknown": 0.0
       },
       "matched_kws": [
-        "orb"
+        "orb",
+        "fvg"
       ],
-      "prior_key": "orb",
-      "classified_at": "2026-06-15T21:11:52"
+      "prior_key": null,
+      "classified_at": "2026-06-15T21:18:24"
     },
     "4": {
       "spec_id": 4,
@@ -110,20 +113,20 @@
       "all_scores": {
         "orb": 0.0,
         "vwap_pullback": 0.0,
+        "fvg_continuation": 0.0,
         "mean_reversion": 0.1111,
         "trend_following": 0.0,
-        "fvg_continuation": 0.0,
         "liquidity_sweep": 0.0,
-        "breakout": 0.0,
         "options_income": 0.4444,
         "statistical_arbitrage": 0.0,
-        "other": 0.0
+        "hybrid": 0.0,
+        "unknown": 0.0
       },
       "matched_kws": [
         "wheel"
       ],
       "prior_key": null,
-      "classified_at": "2026-06-15T21:11:52"
+      "classified_at": "2026-06-15T21:18:24"
     },
     "6": {
       "spec_id": 6,
@@ -143,20 +146,20 @@
       "all_scores": {
         "orb": 0.1111,
         "vwap_pullback": 0.6667,
+        "fvg_continuation": 0.0,
         "mean_reversion": 0.4444,
         "trend_following": 0.0,
-        "fvg_continuation": 0.0,
         "liquidity_sweep": 0.0,
-        "breakout": 0.0,
         "options_income": 0.0,
         "statistical_arbitrage": 0.0,
-        "other": 0.0
+        "hybrid": 0.0,
+        "unknown": 0.0
       },
       "matched_kws": [
         "vwap"
       ],
       "prior_key": "vwap_pullback",
-      "classified_at": "2026-06-15T21:11:52"
+      "classified_at": "2026-06-15T21:18:24"
     },
     "7": {
       "spec_id": 7,
@@ -173,20 +176,20 @@
       "all_scores": {
         "orb": 0.3333,
         "vwap_pullback": 0.0,
-        "mean_reversion": 0.0,
-        "trend_following": 0.0,
         "fvg_continuation": 0.0,
+        "mean_reversion": 0.0,
+        "trend_following": 0.1111,
         "liquidity_sweep": 0.0,
-        "breakout": 0.1111,
         "options_income": 0.0,
         "statistical_arbitrage": 0.0,
-        "other": 0.0
+        "hybrid": 0.0,
+        "unknown": 0.0
       },
       "matched_kws": [
         "opening range"
       ],
       "prior_key": "orb",
-      "classified_at": "2026-06-15T21:11:52"
+      "classified_at": "2026-06-15T21:18:24"
     }
   }
 }
