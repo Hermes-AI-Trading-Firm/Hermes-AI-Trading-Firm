@@ -11,6 +11,7 @@ reports/audits/
 reports/validation/
 reports/regime/
 reports/decision_packages/
+reports/learning/
 api/_server.*
 nt8_export/*
 !nt8_export/.gitkeep
