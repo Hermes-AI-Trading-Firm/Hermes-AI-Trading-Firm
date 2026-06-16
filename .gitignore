@@ -7,6 +7,7 @@ __pycache__/
 *.db-journal
 reports/dashboard_state.json
 reports/strategies/
+reports/audits/
 api/_server.*
 nt8_export/*
 !nt8_export/.gitkeep
