@@ -58,6 +58,20 @@ _STATUS_ICON = {"PASS": "+", "WARN": "!", "FAIL": "X", "INFO": "i"}
 # Prop-firm typical max trailing drawdown (5% is common)
 _PROP_FIRM_DD_LIMIT = 0.05
 
+# Summary table: categories shown and their column headers
+_SUMMARY_CATS = [
+    ("Data Completeness",       "Data"),
+    ("Sample Size",             "Size"),
+    ("Overfit Risk",            "Overfit"),
+    ("Out-of-Sample Readiness", "OOS"),
+    ("Prop-Firm Readiness",     "Prop"),
+]
+
+# Recommendations that indicate the strategy has real backtest data
+_DATA_RECS = {"NEEDS_WALK_FORWARD", "READY_FOR_HUMAN_REVIEW", "REJECT_RESEARCH_CANDIDATE"}
+
+_STATUS_RANK = {"FAIL": 0, "WARN": 1, "PASS": 2, "INFO": 3}
+
 
 # ---------------------------------------------------------------------------
 # Data types
@@ -354,19 +368,31 @@ def _check_overfit_risk(
 
     any_flag = False
 
-    if pf is not None and pf > 2.5 and trades < 100:
+    # Tiered thresholds: tighter limits when trade count is low
+    # < 75 trades: small sample -- lower bar for "suspicious" metrics
+    pf_limit     = 2.0 if trades < 75 else 2.5
+    sharpe_limit = 1.5 if trades < 75 else 2.0
+    wr_limit     = 0.65 if trades < 75 else 0.75
+
+    if pf is not None and pf > pf_limit and trades < 100:
         _chk(checks, cat, "Profit factor vs trades",
-             "WARN", f"PF={pf} > 2.5 with only {trades} trades -- elevated overfit risk")
+             "WARN",
+             f"PF={pf} > {pf_limit} with only {trades} trades -- "
+             f"insufficient sample to trust this metric")
         any_flag = True
 
-    if sharpe is not None and sharpe > 2.0 and trades < 100:
+    if sharpe is not None and sharpe > sharpe_limit and trades < 100:
         _chk(checks, cat, "Sharpe vs trades",
-             "WARN", f"Sharpe={sharpe} > 2.0 with only {trades} trades -- elevated overfit risk")
+             "WARN",
+             f"Sharpe={sharpe} > {sharpe_limit} with only {trades} trades -- "
+             f"insufficient sample to trust this metric")
         any_flag = True
 
-    if wr is not None and wr > 0.75 and trades < 100:
+    if wr is not None and wr > wr_limit and trades < 100:
         _chk(checks, cat, "Win rate vs trades",
-             "WARN", f"Win rate={wr:.0%} > 75% with only {trades} trades -- elevated overfit risk")
+             "WARN",
+             f"Win rate={wr:.0%} > {wr_limit:.0%} with only {trades} trades -- "
+             f"insufficient sample to trust this metric")
         any_flag = True
 
     if mdd is not None and net_p is not None and net_p > 0 and abs(mdd) < 0.01:
@@ -679,6 +705,55 @@ def _print_report(r: AuditReport) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Summary table (--all mode)
+# ---------------------------------------------------------------------------
+
+def _worst_status(checks: List[AuditCheck], category: str) -> str:
+    cats = [c for c in checks if c.category == category]
+    if not cats:
+        return "-"
+    return min(cats, key=lambda c: _STATUS_RANK.get(c.status, 99)).status
+
+
+def _print_summary(reports: List[AuditReport]) -> None:
+    data_reports   = [r for r in reports if r.recommendation in _DATA_RECS]
+    nodata_reports = [r for r in reports if r.recommendation not in _DATA_RECS]
+
+    print("-" * 72)
+    print("AUDIT SUMMARY")
+    print("-" * 72)
+    print()
+
+    if data_reports:
+        name_w = max((len(r.spec_name) for r in data_reports), default=20)
+        rec_w  = max((len(r.recommendation) for r in data_reports), default=14)
+        cat_hdr = "  ".join(f"{short:<7}" for _, short in _SUMMARY_CATS)
+        sep_cat = "  ".join("-" * 7 for _ in _SUMMARY_CATS)
+
+        print(f"Strategies with backtest data ({len(data_reports)}):")
+        print()
+        print(f"  {'Strategy':<{name_w}}  PASS  WARN  FAIL  "
+              f"{'Recommendation':<{rec_w}}  {cat_hdr}")
+        print(f"  {'-'*name_w}  ----  ----  ----  {'-'*rec_w}  {sep_cat}")
+        for r in data_reports:
+            cats_str = "  ".join(
+                f"[{_STATUS_ICON.get(_worst_status(r.checks, cat), '-')}]    "
+                for cat, _ in _SUMMARY_CATS
+            )
+            print(f"  {r.spec_name:<{name_w}}  {r.pass_count:4}  "
+                  f"{r.warn_count:4}  {r.fail_count:4}  "
+                  f"{r.recommendation:<{rec_w}}  {cats_str}")
+        print()
+
+    if nodata_reports:
+        print(f"Strategies without backtest data ({len(nodata_reports)}):")
+        print()
+        for r in nodata_reports:
+            print(f"  {r.spec_name:<40}  {r.recommendation}")
+        print()
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -734,6 +809,7 @@ def main() -> None:
         print()
 
         report_paths: List[Tuple[str, str, str]] = []  # (name, md, json)
+        all_reports:  List[AuditReport]           = []
 
         for sid in spec_ids:
             report = audit_spec(conn, sid)
@@ -742,6 +818,7 @@ def main() -> None:
                 continue
 
             _print_report(report)
+            all_reports.append(report)
 
             if not args.dry_run:
                 md_path, json_path = write_reports(report, reports_dir)
@@ -749,6 +826,9 @@ def main() -> None:
 
             if report.fail_count > 0:
                 exit_code = 1
+
+        if args.all and len(all_reports) > 1:
+            _print_summary(all_reports)
 
         if not args.dry_run and report_paths:
             print("Generated reports:")
