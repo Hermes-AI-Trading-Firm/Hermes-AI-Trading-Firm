@@ -14,6 +14,7 @@ Score -> Audit -> Validation -> REVIEW_REQUIRED -> Human Review
 | File | Purpose |
 |------|---------|
 | `monte_carlo.py` | Bootstrap resample trades N times; measure survival rate |
+| `walk_forward.py` | Compare IS vs OOS backtests; measure performance retention |
 
 ---
 
@@ -118,6 +119,79 @@ check resolves to:
 - `[X] FAIL` — score < 70%
 
 `walk_forward_score` remains null until a future walk-forward phase.
+
+---
+
+## Walk-Forward (`walk_forward.py`)
+
+**Question:** "Did the strategy perform reasonably out-of-sample compared
+to in-sample?"
+
+**Method:**
+1. Load latest IS backtest and latest OOS backtest for the spec
+2. Compute three retention/penalty components
+3. Weight into `walk_forward_score` (0.0–1.0)
+4. Write `walk_forward_score` and `walk_forward_pass` to `scoring_results`
+
+**Components:**
+
+| Component | Formula | Weight |
+|-----------|---------|--------|
+| PF retention | `clamp(OOS PF / IS PF, 0, 1)` | 40% |
+| Expectancy retention | `clamp(OOS exp/trade / IS exp/trade, 0, 1)` | 40% |
+| Drawdown component | `clamp(IS DD / OOS DD, 0, 1)` if OOS DD > IS DD, else 1.0 | 20% |
+
+**Tiers:**
+
+| Tier | Threshold |
+|------|-----------|
+| PASS | >= 70% |
+| WARNING | 50–69% |
+| FAIL | < 50% |
+
+**NOT_RUN:** If no OOS backtest exists for the spec, the engine skips it
+without touching `scoring_results`.
+
+**No schema changes.** Updates two existing null fields in the latest
+`scoring_results` row.
+
+### Requirements
+
+- In-sample backtest in `backtests` (`is_in_sample=1`)
+- Out-of-sample backtest in `backtests` (`is_in_sample=0`)
+- At least one `scoring_results` row for the spec
+- Import OOS with: `python -m connectors.ninjatrader.nt8_import_pipeline --oos ...`
+
+### Usage
+
+```powershell
+# Run one spec
+python -m research.validation.walk_forward --spec-id N
+
+# Run all specs (NOT_RUN shown for specs without OOS)
+python -m research.validation.walk_forward --all
+
+# Dry-run (compute, no DB write)
+python -m research.validation.walk_forward --spec-id N --dry-run
+```
+
+### Output
+
+Console: IS vs OOS metric table, component breakdown, pass/fail verdict.
+
+Reports written to `reports/validation/` (gitignored):
+```
+reports/validation/
+  ES_VWAP_REVERSION_v001_walk_forward_20260615.md
+  ES_VWAP_REVERSION_v001_walk_forward_20260615.json
+```
+
+Filename format: `{spec_name}_walk_forward_{YYYYMMDD}.md`
+
+### Auditor integration
+
+After walk-forward runs, the auditor's `[!] Walk-forward validation null`
+check resolves to PASS / WARN / FAIL based on the three tiers above.
 
 ---
 

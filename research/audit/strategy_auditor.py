@@ -445,7 +445,12 @@ def _check_oos_readiness(
     wf_score = score.get("walk_forward_score")
     wf_pass  = bool(score.get("walk_forward_pass"))
     if wf_score is not None:
-        status = "PASS" if wf_pass else "WARN"
+        if wf_pass:
+            status = "PASS"
+        elif wf_score >= 0.50:
+            status = "WARN"
+        else:
+            status = "FAIL"
         _chk(checks, cat, "Walk-forward validation", status,
              f"score={wf_score}  pass={wf_pass}")
     else:
