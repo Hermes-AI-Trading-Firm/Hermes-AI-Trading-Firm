@@ -1,0 +1,592 @@
+{
+  "version": "1",
+  "last_updated": "2026-06-15T20:46:42",
+  "strategies_ingested": 6,
+  "strategy_records": {
+    "1": {
+      "spec_id": 1,
+      "spec_name": "BTC_REGIME_BREAKOUT_v001",
+      "symbol": "",
+      "timeframe": "",
+      "readiness_status": "NEEDS_WALK_FORWARD",
+      "ingested_at": "2026-06-15T20:46:42",
+      "failure_pattern_ids": [
+        "low_trade_count",
+        "missing_oos",
+        "missing_mc",
+        "drawdown_limit",
+        "single_regime",
+        "audit_fails"
+      ],
+      "failure_patterns": [
+        {
+          "pattern_id": "low_trade_count",
+          "severity": "MEDIUM",
+          "category": "Data",
+          "description": "Low trade count: 50 trades. 100+ recommended for statistically reliable performance metrics."
+        },
+        {
+          "pattern_id": "missing_oos",
+          "severity": "HIGH",
+          "category": "OOS",
+          "description": "No out-of-sample backtest: in-sample results cannot be trusted for live performance without OOS validation. Walk-forward test required."
+        },
+        {
+          "pattern_id": "missing_mc",
+          "severity": "MEDIUM",
+          "category": "Robustness",
+          "description": "Monte Carlo not run: sequence risk is unknown. Bootstrap resampling is required to assess robustness to trade order variation."
+        },
+        {
+          "pattern_id": "drawdown_limit",
+          "severity": "MEDIUM",
+          "category": "Compliance",
+          "description": "Drawdown 6.2% exceeds prop-firm limit 5%. Strategy does not meet standard prop-firm drawdown constraints."
+        },
+        {
+          "pattern_id": "single_regime",
+          "severity": "LOW",
+          "category": "Regime",
+          "description": "Single regime window: all trades concentrated in '2026-01'. Insufficient regime coverage to assess cross-condition robustness."
+        },
+        {
+          "pattern_id": "audit_fails",
+          "severity": "MEDIUM",
+          "category": "Data",
+          "description": "1 FAIL finding(s) in audit: critical research gates have not been cleared. Review audit report and resolve all failures before advancing."
+        }
+      ],
+      "strength_keys": [
+        "high_composite_score",
+        "good_win_rate",
+        "low_overfit",
+        "regime_consistent"
+      ],
+      "strength_patterns": [
+        "Composite score 88.8 (Grade A): strong overall performance profile.",
+        "Win rate 62.0% across 50 trades: consistent directional accuracy.",
+        "Overfitting risk 0.00: scoring engine detected no parameter overfit.",
+        "Regime analysis shows '2026-01' window classified Strong: strategy performs in current conditions."
+      ],
+      "action_types": [
+        "run_oos_test",
+        "collect_more_trades",
+        "run_monte_carlo",
+        "add_filter_for_research",
+        "test_regime_specific_variation"
+      ]
+    },
+    "2": {
+      "spec_id": 2,
+      "spec_name": "MGC_VWAP_PULLBACK_v001",
+      "symbol": "",
+      "timeframe": "",
+      "readiness_status": "NEEDS_REAL_NT8_EXPORT",
+      "ingested_at": "2026-06-15T20:46:42",
+      "failure_pattern_ids": [
+        "no_trade_json"
+      ],
+      "failure_patterns": [
+        {
+          "pattern_id": "no_trade_json",
+          "severity": "HIGH",
+          "category": "Data",
+          "description": "No trade_list_json: individual trade data is missing. Detailed pattern analysis is not possible without real NT8 export data."
+        }
+      ],
+      "strength_keys": [
+        "mc_pass",
+        "wf_pass",
+        "high_composite_score",
+        "low_overfit"
+      ],
+      "strength_patterns": [
+        "Monte Carlo PASS: 90.0% survival across 1,000 bootstrap simulations.",
+        "Walk-forward PASS: score=1.0000. OOS performance validates IS results.",
+        "Composite score 87.2 (Grade A): strong overall performance profile.",
+        "Overfitting risk 0.00: scoring engine detected no parameter overfit."
+      ],
+      "action_types": [
+        "collect_more_trades"
+      ]
+    },
+    "3": {
+      "spec_id": 3,
+      "spec_name": "MNQ_ORB_FVG_v001",
+      "symbol": "",
+      "timeframe": "",
+      "readiness_status": "NEEDS_WALK_FORWARD",
+      "ingested_at": "2026-06-15T20:46:42",
+      "failure_pattern_ids": [
+        "low_trade_count",
+        "missing_oos",
+        "drawdown_limit",
+        "single_regime",
+        "audit_fails"
+      ],
+      "failure_patterns": [
+        {
+          "pattern_id": "low_trade_count",
+          "severity": "MEDIUM",
+          "category": "Data",
+          "description": "Low trade count: 50 trades. 100+ recommended for statistically reliable performance metrics."
+        },
+        {
+          "pattern_id": "missing_oos",
+          "severity": "HIGH",
+          "category": "OOS",
+          "description": "No out-of-sample backtest: in-sample results cannot be trusted for live performance without OOS validation. Walk-forward test required."
+        },
+        {
+          "pattern_id": "drawdown_limit",
+          "severity": "MEDIUM",
+          "category": "Compliance",
+          "description": "Drawdown 6.2% exceeds prop-firm limit 5%. Strategy does not meet standard prop-firm drawdown constraints."
+        },
+        {
+          "pattern_id": "single_regime",
+          "severity": "LOW",
+          "category": "Regime",
+          "description": "Single regime window: all trades concentrated in '2026-01'. Insufficient regime coverage to assess cross-condition robustness."
+        },
+        {
+          "pattern_id": "audit_fails",
+          "severity": "MEDIUM",
+          "category": "Data",
+          "description": "1 FAIL finding(s) in audit: critical research gates have not been cleared. Review audit report and resolve all failures before advancing."
+        }
+      ],
+      "strength_keys": [
+        "mc_pass",
+        "high_prob_positive",
+        "high_composite_score",
+        "good_win_rate",
+        "low_overfit",
+        "regime_consistent"
+      ],
+      "strength_patterns": [
+        "Monte Carlo PASS: 100.0% survival across 1,000 bootstrap simulations.",
+        "High probability positive: 99.8% of simulations end above initial capital.",
+        "Composite score 88.8 (Grade A): strong overall performance profile.",
+        "Win rate 62.0% across 50 trades: consistent directional accuracy.",
+        "Overfitting risk 0.00: scoring engine detected no parameter overfit.",
+        "Regime analysis shows '2026-01' window classified Strong: strategy performs in current conditions."
+      ],
+      "action_types": [
+        "run_oos_test",
+        "collect_more_trades",
+        "add_filter_for_research",
+        "test_regime_specific_variation"
+      ]
+    },
+    "4": {
+      "spec_id": 4,
+      "spec_name": "SPY_WHEEL_STRATEGY_v001",
+      "symbol": "",
+      "timeframe": "",
+      "readiness_status": "NEEDS_REAL_NT8_EXPORT",
+      "ingested_at": "2026-06-15T20:46:42",
+      "failure_pattern_ids": [
+        "no_trade_json"
+      ],
+      "failure_patterns": [
+        {
+          "pattern_id": "no_trade_json",
+          "severity": "HIGH",
+          "category": "Data",
+          "description": "No trade_list_json: individual trade data is missing. Detailed pattern analysis is not possible without real NT8 export data."
+        }
+      ],
+      "strength_keys": [
+        "mc_pass",
+        "wf_pass",
+        "low_overfit"
+      ],
+      "strength_patterns": [
+        "Monte Carlo PASS: 90.0% survival across 1,000 bootstrap simulations.",
+        "Walk-forward PASS: score=0.7000. OOS performance validates IS results.",
+        "Overfitting risk 0.00: scoring engine detected no parameter overfit."
+      ],
+      "action_types": [
+        "collect_more_trades"
+      ]
+    },
+    "6": {
+      "spec_id": 6,
+      "spec_name": "ES_VWAP_REVERSION_v001",
+      "symbol": "ES",
+      "timeframe": "5 min",
+      "readiness_status": "NEEDS_REAL_NT8_EXPORT",
+      "ingested_at": "2026-06-15T20:46:42",
+      "failure_pattern_ids": [
+        "no_trade_json"
+      ],
+      "failure_patterns": [
+        {
+          "pattern_id": "no_trade_json",
+          "severity": "HIGH",
+          "category": "Data",
+          "description": "No trade_list_json: individual trade data is missing. Detailed pattern analysis is not possible without real NT8 export data."
+        }
+      ],
+      "strength_keys": [
+        "wf_warn_positive",
+        "high_composite_score",
+        "good_win_rate",
+        "low_overfit",
+        "low_drawdown"
+      ],
+      "strength_patterns": [
+        "Walk-forward WARNING: score=0.6841. OOS degradation is present but manageable. Strategy shows cross-period generality.",
+        "Composite score 88.8 (Grade A): strong overall performance profile.",
+        "Win rate 70.0% across 80 trades: consistent directional accuracy.",
+        "Overfitting risk 0.00: scoring engine detected no parameter overfit.",
+        "Low max drawdown 3.0%: strong capital preservation."
+      ],
+      "action_types": [
+        "collect_more_trades"
+      ]
+    },
+    "7": {
+      "spec_id": 7,
+      "spec_name": "HERMES_INTEGRATION_TEST_v001",
+      "symbol": "MNQ",
+      "timeframe": "1 min",
+      "readiness_status": "NEEDS_WALK_FORWARD",
+      "ingested_at": "2026-06-15T20:46:42",
+      "failure_pattern_ids": [
+        "low_trade_count",
+        "missing_oos",
+        "drawdown_limit",
+        "single_regime",
+        "audit_fails"
+      ],
+      "failure_patterns": [
+        {
+          "pattern_id": "low_trade_count",
+          "severity": "MEDIUM",
+          "category": "Data",
+          "description": "Low trade count: 50 trades. 100+ recommended for statistically reliable performance metrics."
+        },
+        {
+          "pattern_id": "missing_oos",
+          "severity": "HIGH",
+          "category": "OOS",
+          "description": "No out-of-sample backtest: in-sample results cannot be trusted for live performance without OOS validation. Walk-forward test required."
+        },
+        {
+          "pattern_id": "drawdown_limit",
+          "severity": "MEDIUM",
+          "category": "Compliance",
+          "description": "Drawdown 6.2% exceeds prop-firm limit 5%. Strategy does not meet standard prop-firm drawdown constraints."
+        },
+        {
+          "pattern_id": "single_regime",
+          "severity": "LOW",
+          "category": "Regime",
+          "description": "Single regime window: all trades concentrated in '2026-01'. Insufficient regime coverage to assess cross-condition robustness."
+        },
+        {
+          "pattern_id": "audit_fails",
+          "severity": "MEDIUM",
+          "category": "Data",
+          "description": "1 FAIL finding(s) in audit: critical research gates have not been cleared. Review audit report and resolve all failures before advancing."
+        }
+      ],
+      "strength_keys": [
+        "mc_pass",
+        "high_prob_positive",
+        "high_composite_score",
+        "good_win_rate",
+        "low_overfit",
+        "regime_consistent"
+      ],
+      "strength_patterns": [
+        "Monte Carlo PASS: 100.0% survival across 1,000 bootstrap simulations.",
+        "High probability positive: 99.8% of simulations end above initial capital.",
+        "Composite score 88.8 (Grade A): strong overall performance profile.",
+        "Win rate 62.0% across 50 trades: consistent directional accuracy.",
+        "Overfitting risk 0.00: scoring engine detected no parameter overfit.",
+        "Regime analysis shows '2026-01' window classified Strong: strategy performs in current conditions."
+      ],
+      "action_types": [
+        "run_oos_test",
+        "collect_more_trades",
+        "add_filter_for_research",
+        "test_regime_specific_variation"
+      ]
+    }
+  },
+  "failure_index": {
+    "low_trade_count": {
+      "severity": "MEDIUM",
+      "category": "Data",
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    },
+    "missing_oos": {
+      "severity": "HIGH",
+      "category": "OOS",
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    },
+    "missing_mc": {
+      "severity": "MEDIUM",
+      "category": "Robustness",
+      "spec_ids": [
+        1
+      ],
+      "count": 1
+    },
+    "drawdown_limit": {
+      "severity": "MEDIUM",
+      "category": "Compliance",
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    },
+    "single_regime": {
+      "severity": "LOW",
+      "category": "Regime",
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    },
+    "audit_fails": {
+      "severity": "MEDIUM",
+      "category": "Data",
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    },
+    "no_trade_json": {
+      "severity": "HIGH",
+      "category": "Data",
+      "spec_ids": [
+        2,
+        4,
+        6
+      ],
+      "count": 3
+    }
+  },
+  "strength_index": {
+    "high_composite_score": {
+      "spec_ids": [
+        1,
+        2,
+        3,
+        6,
+        7
+      ],
+      "count": 5
+    },
+    "good_win_rate": {
+      "spec_ids": [
+        1,
+        3,
+        6,
+        7
+      ],
+      "count": 4
+    },
+    "low_overfit": {
+      "spec_ids": [
+        1,
+        2,
+        3,
+        4,
+        6,
+        7
+      ],
+      "count": 6
+    },
+    "regime_consistent": {
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    },
+    "mc_pass": {
+      "spec_ids": [
+        2,
+        3,
+        4,
+        7
+      ],
+      "count": 4
+    },
+    "wf_pass": {
+      "spec_ids": [
+        2,
+        4
+      ],
+      "count": 2
+    },
+    "high_prob_positive": {
+      "spec_ids": [
+        3,
+        7
+      ],
+      "count": 2
+    },
+    "wf_warn_positive": {
+      "spec_ids": [
+        6
+      ],
+      "count": 1
+    },
+    "low_drawdown": {
+      "spec_ids": [
+        6
+      ],
+      "count": 1
+    }
+  },
+  "action_index": {
+    "run_oos_test": {
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    },
+    "collect_more_trades": {
+      "spec_ids": [
+        1,
+        2,
+        3,
+        4,
+        6,
+        7
+      ],
+      "count": 6
+    },
+    "run_monte_carlo": {
+      "spec_ids": [
+        1
+      ],
+      "count": 1
+    },
+    "add_filter_for_research": {
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    },
+    "test_regime_specific_variation": {
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    }
+  },
+  "readiness_index": {
+    "NEEDS_WALK_FORWARD": [
+      1,
+      3,
+      7
+    ],
+    "NEEDS_REAL_NT8_EXPORT": [
+      2,
+      4,
+      6
+    ]
+  },
+  "category_index": {
+    "Data": {
+      "HIGH": 3,
+      "MEDIUM": 6,
+      "LOW": 0,
+      "total": 9
+    },
+    "OOS": {
+      "HIGH": 3,
+      "MEDIUM": 0,
+      "LOW": 0,
+      "total": 3
+    },
+    "Robustness": {
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 0,
+      "total": 1
+    },
+    "Compliance": {
+      "HIGH": 0,
+      "MEDIUM": 3,
+      "LOW": 0,
+      "total": 3
+    },
+    "Regime": {
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 3,
+      "total": 3
+    }
+  },
+  "strategy_type_priors": {
+    "breakout": {
+      "label": "Breakout",
+      "observations": [
+        {
+          "metric": "oos_retention_fail_rate",
+          "value": 0.68,
+          "note": "68% fail due to low OOS retention"
+        }
+      ],
+      "updated_at": "2026-06-15T20:46:42"
+    },
+    "mean_reversion": {
+      "label": "Mean Reversion",
+      "observations": [
+        {
+          "metric": "mc_pass_rate",
+          "value": 0.72,
+          "note": "72% pass Monte Carlo"
+        },
+        {
+          "metric": "dd_fail_rate",
+          "value": 0.41,
+          "note": "41% fail prop-firm DD limits"
+        }
+      ],
+      "updated_at": "2026-06-15T20:46:42"
+    },
+    "orb": {
+      "label": "ORB",
+      "observations": [
+        {
+          "metric": "regime_strength",
+          "value": null,
+          "note": "Strongest during high-volatility regimes"
+        }
+      ],
+      "updated_at": "2026-06-15T20:46:42"
+    }
+  }
+}
