@@ -135,10 +135,12 @@ def step_import(
     trade_list_path: Optional[Path],
     spec_id: int,
     initial_capital: Optional[float],
+    is_oos: bool = False,
 ) -> Optional[int]:
     """Import summary + trade list. Returns backtest_id (new or existing)."""
     _section(3, "Import Backtest")
     backtest_id: Optional[int] = None
+    sample_type = "OOS" if is_oos else "IS"
 
     if summary_path:
         backtest_id, errs = import_backtest_summary(
@@ -146,10 +148,11 @@ def step_import(
             path=summary_path,
             spec_id=spec_id,
             initial_capital=initial_capital,
+            is_in_sample=not is_oos,
             dry_run=False,
         )
         if backtest_id:
-            print(f"  Summary    : backtest_id={backtest_id}  inserted")
+            print(f"  Summary    : backtest_id={backtest_id}  inserted  [{sample_type}]")
         else:
             is_dup = any("Duplicate skipped" in e for e in errs)
             if is_dup:
@@ -175,10 +178,11 @@ def step_import(
             spec_id=spec_id,
             backtest_id=backtest_id,
             initial_capital=initial_capital,
+            is_in_sample=not is_oos,
             dry_run=False,
         )
         if backtest_id:
-            print(f"  Trade list : backtest_id={backtest_id}  {ins} trade(s) attached")
+            print(f"  Trade list : backtest_id={backtest_id}  {ins} trade(s) attached  [{sample_type}]")
         else:
             print(f"  Trade list : {ins} backtest row(s) from trade list  {skip} duplicate(s)")
         for e in errs:
@@ -285,6 +289,9 @@ def main() -> None:
     parser.add_argument("--spec-id",         type=int,        help="strategy_specs.spec_id")
     parser.add_argument("--initial-capital", type=float,      help="Starting account value for equity curve")
     parser.add_argument("--run-label",       default=None,    help="Display label for this run")
+    parser.add_argument("--oos",             action="store_true",
+                        help="Mark this backtest as out-of-sample (is_in_sample=0). "
+                             "Default is in-sample.")
     parser.add_argument("--db",              default=str(DEFAULT_DB), metavar="PATH")
     parser.add_argument("--probe-only",      action="store_true",
                         help="Inspect file(s) only. No DB required. No spec-id required.")
@@ -306,6 +313,8 @@ def main() -> None:
     if trade_list_path: print(f"  Trade list : {trade_list_path}")
     if args.spec_id:    print(f"  spec-id    : {args.spec_id}")
     print(f"  Mode       : {mode}")
+    if not args.probe_only:
+        print(f"  Type       : {'OOS (out-of-sample)' if args.oos else 'IS (in-sample)  [default]'}")
     print()
 
     # ── PROBE-ONLY ────────────────────────────────────────────────────────────
@@ -342,7 +351,8 @@ def main() -> None:
         # Step 3: Import
         _ensure_dedup_index(conn)
         backtest_id = step_import(
-            conn, summary_path, trade_list_path, args.spec_id, args.initial_capital
+            conn, summary_path, trade_list_path, args.spec_id, args.initial_capital,
+            is_oos=args.oos,
         )
         if backtest_id is None:
             _halt("Import produced no backtest_id -- check errors above")

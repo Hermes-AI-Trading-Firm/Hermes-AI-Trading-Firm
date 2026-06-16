@@ -386,6 +386,7 @@ def import_trade_list(
     spec_id: int,
     backtest_id: Optional[int] = None,
     initial_capital: Optional[float] = None,
+    is_in_sample: bool = True,
     dry_run: bool = False,
 ) -> Tuple[int, int, List[str]]:
     """
@@ -504,7 +505,7 @@ def import_trade_list(
             total, len(wins), len(losses),
             avg_win, avg_loss,
             net_p, exp_pt,
-            initial_capital, 1,
+            initial_capital, 1 if is_in_sample else 0,
             trade_list_json, equity_curve_json,
         ))
         conn.commit()
@@ -1073,6 +1074,7 @@ def main() -> None:
                 spec_id=args.spec_id,
                 backtest_id=backtest_id,
                 initial_capital=args.initial_capital,
+                is_in_sample=not args.oos,
                 dry_run=args.dry_run,
             )
             if args.dry_run:
