@@ -1,0 +1,192 @@
+{
+  "version": "1",
+  "last_updated": "2026-06-15T21:11:52",
+  "classifications": {
+    "1": {
+      "spec_id": 1,
+      "spec_name": "BTC_REGIME_BREAKOUT_v001",
+      "symbol": "",
+      "timeframe": "",
+      "primary": "breakout",
+      "primary_label": "Breakout",
+      "primary_confidence": 0.4444,
+      "secondaries": [],
+      "all_archetypes": [
+        "breakout"
+      ],
+      "all_scores": {
+        "orb": 0.0,
+        "vwap_pullback": 0.0,
+        "mean_reversion": 0.0,
+        "trend_following": 0.0,
+        "fvg_continuation": 0.0,
+        "liquidity_sweep": 0.0,
+        "breakout": 0.4444,
+        "options_income": 0.0,
+        "statistical_arbitrage": 0.0,
+        "other": 0.0
+      },
+      "matched_kws": [
+        "breakout"
+      ],
+      "prior_key": "breakout",
+      "classified_at": "2026-06-15T21:11:52"
+    },
+    "2": {
+      "spec_id": 2,
+      "spec_name": "MGC_VWAP_PULLBACK_v001",
+      "symbol": "",
+      "timeframe": "",
+      "primary": "vwap_pullback",
+      "primary_label": "VWAP Pullback",
+      "primary_confidence": 0.4444,
+      "secondaries": [],
+      "all_archetypes": [
+        "vwap_pullback"
+      ],
+      "all_scores": {
+        "orb": 0.0,
+        "vwap_pullback": 0.4444,
+        "mean_reversion": 0.1111,
+        "trend_following": 0.0,
+        "fvg_continuation": 0.0,
+        "liquidity_sweep": 0.0,
+        "breakout": 0.0,
+        "options_income": 0.0,
+        "statistical_arbitrage": 0.0,
+        "other": 0.0
+      },
+      "matched_kws": [
+        "vwap"
+      ],
+      "prior_key": "vwap_pullback",
+      "classified_at": "2026-06-15T21:11:52"
+    },
+    "3": {
+      "spec_id": 3,
+      "spec_name": "MNQ_ORB_FVG_v001",
+      "symbol": "",
+      "timeframe": "",
+      "primary": "orb",
+      "primary_label": "ORB",
+      "primary_confidence": 0.4444,
+      "secondaries": [
+        "fvg_continuation"
+      ],
+      "all_archetypes": [
+        "orb",
+        "fvg_continuation"
+      ],
+      "all_scores": {
+        "orb": 0.4444,
+        "vwap_pullback": 0.0,
+        "mean_reversion": 0.0,
+        "trend_following": 0.0,
+        "fvg_continuation": 0.4444,
+        "liquidity_sweep": 0.0,
+        "breakout": 0.1111,
+        "options_income": 0.0,
+        "statistical_arbitrage": 0.0,
+        "other": 0.0
+      },
+      "matched_kws": [
+        "orb"
+      ],
+      "prior_key": "orb",
+      "classified_at": "2026-06-15T21:11:52"
+    },
+    "4": {
+      "spec_id": 4,
+      "spec_name": "SPY_WHEEL_STRATEGY_v001",
+      "symbol": "",
+      "timeframe": "",
+      "primary": "options_income",
+      "primary_label": "Options Income",
+      "primary_confidence": 0.4444,
+      "secondaries": [],
+      "all_archetypes": [
+        "options_income"
+      ],
+      "all_scores": {
+        "orb": 0.0,
+        "vwap_pullback": 0.0,
+        "mean_reversion": 0.1111,
+        "trend_following": 0.0,
+        "fvg_continuation": 0.0,
+        "liquidity_sweep": 0.0,
+        "breakout": 0.0,
+        "options_income": 0.4444,
+        "statistical_arbitrage": 0.0,
+        "other": 0.0
+      },
+      "matched_kws": [
+        "wheel"
+      ],
+      "prior_key": null,
+      "classified_at": "2026-06-15T21:11:52"
+    },
+    "6": {
+      "spec_id": 6,
+      "spec_name": "ES_VWAP_REVERSION_v001",
+      "symbol": "ES",
+      "timeframe": "5 min",
+      "primary": "vwap_pullback",
+      "primary_label": "VWAP Pullback",
+      "primary_confidence": 0.6667,
+      "secondaries": [
+        "mean_reversion"
+      ],
+      "all_archetypes": [
+        "vwap_pullback",
+        "mean_reversion"
+      ],
+      "all_scores": {
+        "orb": 0.1111,
+        "vwap_pullback": 0.6667,
+        "mean_reversion": 0.4444,
+        "trend_following": 0.0,
+        "fvg_continuation": 0.0,
+        "liquidity_sweep": 0.0,
+        "breakout": 0.0,
+        "options_income": 0.0,
+        "statistical_arbitrage": 0.0,
+        "other": 0.0
+      },
+      "matched_kws": [
+        "vwap"
+      ],
+      "prior_key": "vwap_pullback",
+      "classified_at": "2026-06-15T21:11:52"
+    },
+    "7": {
+      "spec_id": 7,
+      "spec_name": "HERMES_INTEGRATION_TEST_v001",
+      "symbol": "MNQ",
+      "timeframe": "1 min",
+      "primary": "orb",
+      "primary_label": "ORB",
+      "primary_confidence": 0.3333,
+      "secondaries": [],
+      "all_archetypes": [
+        "orb"
+      ],
+      "all_scores": {
+        "orb": 0.3333,
+        "vwap_pullback": 0.0,
+        "mean_reversion": 0.0,
+        "trend_following": 0.0,
+        "fvg_continuation": 0.0,
+        "liquidity_sweep": 0.0,
+        "breakout": 0.1111,
+        "options_income": 0.0,
+        "statistical_arbitrage": 0.0,
+        "other": 0.0
+      },
+      "matched_kws": [
+        "opening range"
+      ],
+      "prior_key": "orb",
+      "classified_at": "2026-06-15T21:11:52"
+    }
+  }
+}

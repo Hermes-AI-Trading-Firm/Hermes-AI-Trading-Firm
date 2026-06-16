@@ -1,0 +1,101 @@
+{
+  "orb": {
+    "label": "ORB",
+    "description": "Opening Range Breakout -- trades the break of the first N-minute range",
+    "keywords": [
+      "orb", "opening range", "opening_range", "open range",
+      "first 5 min", "first 15 min", "first 30 min",
+      "first candle", "market open breakout"
+    ],
+    "prior_key": "orb"
+  },
+  "vwap_pullback": {
+    "label": "VWAP Pullback",
+    "description": "VWAP-anchored mean-reversion pullback entries",
+    "keywords": [
+      "vwap", "v-wap", "anchored vwap", "vwap reversion",
+      "vwap pullback", "vwap bounce", "vwap reclaim"
+    ],
+    "prior_key": "vwap_pullback"
+  },
+  "mean_reversion": {
+    "label": "Mean Reversion",
+    "description": "Statistical mean reversion -- fades extended moves back to equilibrium",
+    "keywords": [
+      "reversion", "mean rev", "mean_rev", "regression to mean",
+      "oversold", "overbought", "z-score", "bollinger",
+      "rsi fade", "fade", "counter trend"
+    ],
+    "prior_key": "mean_reversion"
+  },
+  "trend_following": {
+    "label": "Trend Following",
+    "description": "Directional trend following -- rides sustained momentum",
+    "keywords": [
+      "trend follow", "trend_follow", "momentum", "ema cross",
+      "ma cross", "moving average cross", "trend continuation",
+      "higher high", "higher low", "lower high", "lower low",
+      "adx", "supertrend"
+    ],
+    "prior_key": null
+  },
+  "fvg_continuation": {
+    "label": "FVG Continuation",
+    "description": "Fair Value Gap -- enters on return to unfilled price imbalance",
+    "keywords": [
+      "fvg", "fair value gap", "fair_value_gap",
+      "price imbalance", "imbalance", "order block",
+      "ob entry", "fvg continuation", "gap fill"
+    ],
+    "prior_key": "fvg_continuation"
+  },
+  "liquidity_sweep": {
+    "label": "Liquidity Sweep",
+    "description": "Liquidity grab / stop hunt -- enters after engineered sweep of liquidity",
+    "keywords": [
+      "liquidity sweep", "liquidity grab", "stop hunt",
+      "equal highs", "equal lows", "bsl", "ssl",
+      "buy side liquidity", "sell side liquidity",
+      "inducement", "sweep", "raid"
+    ],
+    "prior_key": null
+  },
+  "breakout": {
+    "label": "Breakout",
+    "description": "Range or level breakout -- enters on breach of defined level",
+    "keywords": [
+      "breakout", "break out", "break_out",
+      "level break", "range break", "consolidation break",
+      "resistance break", "support break", "pivot break",
+      "channel break", "donchian"
+    ],
+    "prior_key": "breakout"
+  },
+  "options_income": {
+    "label": "Options Income",
+    "description": "Options premium selling / income generation",
+    "keywords": [
+      "wheel", "covered call", "cash secured put", "csp",
+      "strangle", "straddle", "iron condor", "iron butterfly",
+      "credit spread", "put spread", "call spread",
+      "options income", "premium selling", "theta"
+    ],
+    "prior_key": null
+  },
+  "statistical_arbitrage": {
+    "label": "Statistical Arbitrage",
+    "description": "Pairs / correlation / cointegration-based arbitrage",
+    "keywords": [
+      "statistical arb", "stat arb", "pairs trading",
+      "pairs", "cointegration", "correlation trade",
+      "spread trade", "ratio trade", "relative value"
+    ],
+    "prior_key": null
+  },
+  "other": {
+    "label": "Other",
+    "description": "Unclassified or mixed archetype -- no dominant pattern detected",
+    "keywords": [],
+    "prior_key": null
+  }
+}
