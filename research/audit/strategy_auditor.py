@@ -455,7 +455,12 @@ def _check_oos_readiness(
     mc_score = score.get("monte_carlo_score")
     mc_pass  = bool(score.get("monte_carlo_pass"))
     if mc_score is not None:
-        status = "PASS" if mc_pass else "WARN"
+        if mc_pass:
+            status = "PASS"
+        elif mc_score >= 0.70:
+            status = "WARN"   # 70-84%: marginal
+        else:
+            status = "FAIL"   # < 70%: sequence-dependent
         _chk(checks, cat, "Monte Carlo validation", status,
              f"score={mc_score}  pass={mc_pass}")
     else:
