@@ -12,3 +12,5 @@ api/_server.*
 nt8_export/*
 !nt8_export/.gitkeep
 connectors/ninjatrader/real_exports/
+*.db-wal
+*.db-shm
