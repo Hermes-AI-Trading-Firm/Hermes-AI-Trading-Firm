@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "last_updated": "2026-06-15T20:46:42",
+  "last_updated": "2026-06-15T21:01:12",
   "strategies_ingested": 6,
   "strategy_records": {
     "1": {
@@ -9,7 +9,7 @@
       "symbol": "",
       "timeframe": "",
       "readiness_status": "NEEDS_WALK_FORWARD",
-      "ingested_at": "2026-06-15T20:46:42",
+      "ingested_at": "2026-06-15T21:01:12",
       "failure_pattern_ids": [
         "low_trade_count",
         "missing_oos",
@@ -82,7 +82,7 @@
       "symbol": "",
       "timeframe": "",
       "readiness_status": "NEEDS_REAL_NT8_EXPORT",
-      "ingested_at": "2026-06-15T20:46:42",
+      "ingested_at": "2026-06-15T21:01:12",
       "failure_pattern_ids": [
         "no_trade_json"
       ],
@@ -116,7 +116,7 @@
       "symbol": "",
       "timeframe": "",
       "readiness_status": "NEEDS_WALK_FORWARD",
-      "ingested_at": "2026-06-15T20:46:42",
+      "ingested_at": "2026-06-15T21:01:12",
       "failure_pattern_ids": [
         "low_trade_count",
         "missing_oos",
@@ -185,7 +185,7 @@
       "symbol": "",
       "timeframe": "",
       "readiness_status": "NEEDS_REAL_NT8_EXPORT",
-      "ingested_at": "2026-06-15T20:46:42",
+      "ingested_at": "2026-06-15T21:01:12",
       "failure_pattern_ids": [
         "no_trade_json"
       ],
@@ -217,7 +217,7 @@
       "symbol": "ES",
       "timeframe": "5 min",
       "readiness_status": "NEEDS_REAL_NT8_EXPORT",
-      "ingested_at": "2026-06-15T20:46:42",
+      "ingested_at": "2026-06-15T21:01:12",
       "failure_pattern_ids": [
         "no_trade_json"
       ],
@@ -253,7 +253,7 @@
       "symbol": "MNQ",
       "timeframe": "1 min",
       "readiness_status": "NEEDS_WALK_FORWARD",
-      "ingested_at": "2026-06-15T20:46:42",
+      "ingested_at": "2026-06-15T21:01:12",
       "failure_pattern_ids": [
         "low_trade_count",
         "missing_oos",
@@ -559,7 +559,7 @@
           "note": "68% fail due to low OOS retention"
         }
       ],
-      "updated_at": "2026-06-15T20:46:42"
+      "updated_at": "2026-06-15T21:01:12"
     },
     "mean_reversion": {
       "label": "Mean Reversion",
@@ -575,7 +575,7 @@
           "note": "41% fail prop-firm DD limits"
         }
       ],
-      "updated_at": "2026-06-15T20:46:42"
+      "updated_at": "2026-06-15T21:01:12"
     },
     "orb": {
       "label": "ORB",
@@ -584,9 +584,201 @@
           "metric": "regime_strength",
           "value": null,
           "note": "Strongest during high-volatility regimes"
+        },
+        {
+          "metric": "oos_retention_threshold",
+          "value": null,
+          "note": "Weak OOS retention below 75 trades -minimum sample required before walk-forward is meaningful"
         }
       ],
-      "updated_at": "2026-06-15T20:46:42"
+      "updated_at": "2026-06-15T21:01:12"
+    },
+    "vwap_pullback": {
+      "label": "VWAP Pullback",
+      "observations": [
+        {
+          "metric": "mc_survival",
+          "value": null,
+          "note": "Better Monte Carlo survival than comparable strategy types"
+        },
+        {
+          "metric": "pf_stability",
+          "value": null,
+          "note": "Lower PF but more stable -less sensitive to sample composition"
+        }
+      ],
+      "updated_at": "2026-06-15T21:01:12"
+    },
+    "fvg_continuation": {
+      "label": "FVG Continuation",
+      "observations": [
+        {
+          "metric": "expectancy",
+          "value": null,
+          "note": "Strong expectancy per trade"
+        },
+        {
+          "metric": "drawdown_variability",
+          "value": null,
+          "note": "Highest drawdown variability across strategy types -DD distribution is wide"
+        }
+      ],
+      "updated_at": "2026-06-15T21:01:12"
+    }
+  },
+  "winning_traits": {
+    "high_composite_score": {
+      "spec_ids": [
+        1,
+        2,
+        3,
+        6,
+        7
+      ],
+      "count": 5
+    },
+    "good_win_rate": {
+      "spec_ids": [
+        1,
+        3,
+        6,
+        7
+      ],
+      "count": 4
+    },
+    "low_overfit": {
+      "spec_ids": [
+        1,
+        2,
+        3,
+        4,
+        6,
+        7
+      ],
+      "count": 6
+    },
+    "regime_consistent": {
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    },
+    "mc_pass": {
+      "spec_ids": [
+        2,
+        3,
+        4,
+        7
+      ],
+      "count": 4
+    },
+    "wf_pass": {
+      "spec_ids": [
+        2,
+        4
+      ],
+      "count": 2
+    },
+    "high_prob_positive": {
+      "spec_ids": [
+        3,
+        7
+      ],
+      "count": 2
+    },
+    "wf_warn_positive": {
+      "spec_ids": [
+        6
+      ],
+      "count": 1
+    },
+    "low_drawdown": {
+      "spec_ids": [
+        6
+      ],
+      "count": 1
+    }
+  },
+  "failure_traits": {
+    "low_trade_count": {
+      "severity": "MEDIUM",
+      "category": "Data",
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    },
+    "no_trade_json": {
+      "severity": "HIGH",
+      "category": "Data",
+      "spec_ids": [
+        2,
+        4,
+        6
+      ],
+      "count": 3
+    }
+  },
+  "audit_failure_patterns": {
+    "audit_fails": {
+      "severity": "MEDIUM",
+      "category": "Data",
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    }
+  },
+  "mc_failure_patterns": {
+    "missing_mc": {
+      "severity": "MEDIUM",
+      "category": "Robustness",
+      "spec_ids": [
+        1
+      ],
+      "count": 1
+    }
+  },
+  "wf_failure_patterns": {
+    "missing_oos": {
+      "severity": "HIGH",
+      "category": "OOS",
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    }
+  },
+  "regime_dependencies": {
+    "single_regime": {
+      "severity": "LOW",
+      "category": "Regime",
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
+    }
+  },
+  "prop_firm_failures": {
+    "drawdown_limit": {
+      "severity": "MEDIUM",
+      "category": "Compliance",
+      "spec_ids": [
+        1,
+        3,
+        7
+      ],
+      "count": 3
     }
   }
 }

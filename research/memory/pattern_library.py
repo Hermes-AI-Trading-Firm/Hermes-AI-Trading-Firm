@@ -84,10 +84,77 @@ def _classify_strength(s: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Named knowledge buckets
+# ---------------------------------------------------------------------------
+
+# Maps bucket name -> set of failure pattern_ids that belong to it
+_FAILURE_BUCKETS: Dict[str, set] = {
+    "failure_traits":         {
+        "no_trade_json", "insufficient_trades", "low_trade_count",
+        "pf_overfit_risk", "sharpe_overfit_risk",
+    },
+    "audit_failure_patterns": {
+        "audit_fails",
+    },
+    "mc_failure_patterns":    {
+        "missing_mc", "mc_fail", "mc_warn", "mc_prob_low",
+    },
+    "wf_failure_patterns":    {
+        "missing_oos", "wf_fail", "wf_warn", "wf_pf_retention", "wf_dd_worse",
+    },
+    "regime_dependencies":    {
+        "missing_regime", "single_regime",
+    },
+    "prop_firm_failures":     {
+        "drawdown_limit", "drawdown_severe",
+    },
+}
+
+# Maps bucket name -> set of strength keys that belong to it
+_STRENGTH_BUCKETS: Dict[str, set] = {
+    "winning_traits": {
+        "mc_pass", "high_prob_positive", "wf_pass", "wf_warn_positive",
+        "high_composite_score", "strong_pf", "good_win_rate",
+        "low_overfit", "low_drawdown", "clean_audit", "regime_consistent",
+    },
+    "regime_dependencies": {
+        "regime_consistent",
+    },
+}
+
+_BUCKET_LABELS: Dict[str, str] = {
+    "winning_traits":         "Winning Traits",
+    "failure_traits":         "Failure Traits",
+    "audit_failure_patterns": "Audit Failure Patterns",
+    "mc_failure_patterns":    "Monte Carlo Failure Patterns",
+    "wf_failure_patterns":    "Walk-Forward Failure Patterns",
+    "regime_dependencies":    "Regime Dependencies",
+    "prop_firm_failures":     "Prop-Firm Failure Causes",
+}
+
+_ALL_BUCKETS = list(_BUCKET_LABELS.keys())
+
+
+def _pattern_bucket(pattern_id: str) -> Optional[str]:
+    for bucket, ids in _FAILURE_BUCKETS.items():
+        if pattern_id in ids:
+            return bucket
+    return None
+
+
+def _strength_bucket(strength_key: str) -> Optional[str]:
+    for bucket, keys in _STRENGTH_BUCKETS.items():
+        if strength_key in keys:
+            return bucket
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Empty library skeleton
 # ---------------------------------------------------------------------------
 
 def _empty_library() -> Dict:
+    buckets = {b: {} for b in _ALL_BUCKETS}
     return {
         "version":               _LIBRARY_VERSION,
         "last_updated":          None,
@@ -99,6 +166,7 @@ def _empty_library() -> Dict:
         "action_index":          {},
         "readiness_index":       {},
         "category_index":        {},
+        **buckets,
     }
 
 
@@ -255,6 +323,45 @@ class PatternLibrary:
         self.data["readiness_index"] = ri
         self.data["category_index"]  = ci
 
+        # Named knowledge buckets
+        buckets: Dict[str, Dict] = {b: {} for b in _ALL_BUCKETS}
+
+        for sid, rec in self.data["strategy_records"].items():
+            iid = int(sid)
+
+            # Failure patterns -> failure buckets
+            for fp in rec.get("failure_patterns", []):
+                pid    = fp["pattern_id"]
+                bucket = _pattern_bucket(pid)
+                if bucket is None:
+                    continue
+                b = buckets[bucket]
+                if pid not in b:
+                    b[pid] = {
+                        "severity": fp["severity"],
+                        "category": fp["category"],
+                        "spec_ids": [],
+                        "count":    0,
+                    }
+                if iid not in b[pid]["spec_ids"]:
+                    b[pid]["spec_ids"].append(iid)
+                    b[pid]["count"] += 1
+
+            # Strength keys -> winning_traits (and regime_dependencies)
+            for key in rec.get("strength_keys", []):
+                bucket = _strength_bucket(key)
+                if bucket is None:
+                    continue
+                b = buckets[bucket]
+                if key not in b:
+                    b[key] = {"spec_ids": [], "count": 0}
+                if iid not in b[key]["spec_ids"]:
+                    b[key]["spec_ids"].append(iid)
+                    b[key]["count"] += 1
+
+        for bname in _ALL_BUCKETS:
+            self.data[bname] = buckets[bname]
+
     # ------------------------------------------------------------------
     # Queries
     # ------------------------------------------------------------------
@@ -395,6 +502,14 @@ class PatternLibrary:
             "vs_avg_strengths": my_strengths - avg_strengths,
         }
 
+    def bucket(self, name: str) -> Dict:
+        """Return a named knowledge bucket, sorted by count descending."""
+        raw = self.data.get(name, {})
+        return dict(sorted(raw.items(), key=lambda kv: -kv[1]["count"]))
+
+    def all_buckets(self) -> Dict[str, Dict]:
+        return {name: self.bucket(name) for name in _ALL_BUCKETS}
+
 
 # ---------------------------------------------------------------------------
 # Ingestion helpers
@@ -501,7 +616,7 @@ def _render_markdown(library: PatternLibrary, dry_run: bool = False) -> str:
         p("## Strategy Type Priors")
         p()
         p("*Historical research findings by strategy type. "
-          "Manually maintained in `research/memory/strategy_type_priors.json`.*")
+          "Maintained in `research/memory/strategy_type_priors.json`.*")
         p()
         for key, entry in sorted(priors.items()):
             p(f"### {entry['label']}")
@@ -515,48 +630,31 @@ def _render_markdown(library: PatternLibrary, dry_run: bool = False) -> str:
                     p(f"- **{obs['metric']}**  — {note}")
             p()
 
-    # ---- Top failure patterns
-    p("## Most Common Failure Patterns")
-    p()
-    top_f = library.top_failure_patterns_with_id(n=15)
-    if top_f:
-        p(f"| Pattern | Severity | Category | Count | % of Firm |")
-        p(f"|---------|----------|----------|-------|-----------|")
-        for pid, d in top_f:
-            pct = d["count"] / total * 100 if total else 0
-            p(f"| `{pid}` | {d['severity']} | {d['category']} "
-              f"| {d['count']} | {pct:.0f}% |")
-    else:
-        p("*No failure patterns recorded.*")
-    p()
-
-    # ---- Category breakdown
-    p("## Failure Category Breakdown")
-    p()
-    ci = library.category_breakdown()
-    if ci:
-        p(f"| Category | HIGH | MEDIUM | LOW | Total |")
-        p(f"|----------|------|--------|-----|-------|")
-        for cat, counts in sorted(ci.items(), key=lambda kv: -kv[1]["total"]):
-            p(f"| {cat} | {counts['HIGH']} | {counts['MEDIUM']} "
-              f"| {counts['LOW']} | {counts['total']} |")
-    else:
-        p("*No data.*")
-    p()
-
-    # ---- Top strengths
-    p("## Most Common Strength Patterns")
-    p()
-    top_s = library.top_strengths(n=10)
-    if top_s:
-        p(f"| Strength Key | Count | % of Firm |")
-        p(f"|-------------|-------|-----------|")
-        for key, d in top_s:
-            pct = d["count"] / total * 100 if total else 0
-            p(f"| `{key}` | {d['count']} | {pct:.0f}% |")
-    else:
-        p("*No strength patterns recorded.*")
-    p()
+    # ---- 7 named knowledge buckets
+    _SEV = {"HIGH": "[!]", "MEDIUM": "[~]", "LOW": "[-]"}
+    for bname in _ALL_BUCKETS:
+        label  = _BUCKET_LABELS[bname]
+        bdata  = library.bucket(bname)
+        p(f"## {label}")
+        p()
+        if bdata:
+            # Winning traits / regime_dependencies (strength keys — no severity)
+            if bname in ("winning_traits",):
+                p(f"| Trait | Count | % of Firm |")
+                p(f"|-------|-------|-----------|")
+                for key, d in bdata.items():
+                    pct = d["count"] / total * 100 if total else 0
+                    p(f"| `{key}` | {d['count']} | {pct:.0f}% |")
+            else:
+                p(f"| Pattern | Sev | Count | % of Firm |")
+                p(f"|---------|-----|-------|-----------|")
+                for pid, d in bdata.items():
+                    pct  = d["count"] / total * 100 if total else 0
+                    icon = _SEV.get(d.get("severity", ""), "")
+                    p(f"| `{pid}` | {icon} | {d['count']} | {pct:.0f}% |")
+        else:
+            p("*No patterns recorded yet.*")
+        p()
 
     # ---- Most-needed actions
     p("## Most-Needed Next Actions (Firm-Wide)")
@@ -648,21 +746,20 @@ def _print_summary(library: PatternLibrary, dry_run: bool = False) -> None:
             print(f"    {len(sids):>2}  {status}")
         print()
 
-    top_f = library.top_failure_patterns_with_id(n=8)
-    if top_f:
-        print("  Top failure patterns:")
-        for pid, d in top_f:
-            pct = d["count"] / total * 100 if total else 0
-            sev_icon = {"HIGH": "[!]", "MEDIUM": "[~]", "LOW": "[-]"}.get(d["severity"], "[?]")
-            print(f"    {sev_icon} {pid:<32}  {d['count']:>2} strategies  ({pct:.0f}%)")
-        print()
-
-    top_s = library.top_strengths(n=5)
-    if top_s:
-        print("  Top strength patterns:")
-        for key, d in top_s:
-            pct = d["count"] / total * 100 if total else 0
-            print(f"    + {key:<32}  {d['count']:>2} strategies  ({pct:.0f}%)")
+    _SEV = {"HIGH": "[!]", "MEDIUM": "[~]", "LOW": "[-]"}
+    for bname in _ALL_BUCKETS:
+        bdata = library.bucket(bname)
+        if not bdata:
+            continue
+        label = _BUCKET_LABELS[bname]
+        print(f"  {label}:")
+        for key, d in list(bdata.items())[:5]:
+            pct  = d["count"] / total * 100 if total else 0
+            if bname == "winning_traits":
+                print(f"    + {key:<32}  {d['count']:>2} strategies  ({pct:.0f}%)")
+            else:
+                icon = _SEV.get(d.get("severity", ""), "[ ]")
+                print(f"    {icon} {key:<32}  {d['count']:>2} strategies  ({pct:.0f}%)")
         print()
 
     priors = library.all_priors()

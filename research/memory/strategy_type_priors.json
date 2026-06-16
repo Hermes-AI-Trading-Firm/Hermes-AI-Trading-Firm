@@ -31,6 +31,41 @@
         "metric": "regime_strength",
         "value": null,
         "note": "Strongest during high-volatility regimes"
+      },
+      {
+        "metric": "oos_retention_threshold",
+        "value": null,
+        "note": "Weak OOS retention below 75 trades -minimum sample required before walk-forward is meaningful"
+      }
+    ]
+  },
+  "vwap_pullback": {
+    "label": "VWAP Pullback",
+    "observations": [
+      {
+        "metric": "mc_survival",
+        "value": null,
+        "note": "Better Monte Carlo survival than comparable strategy types"
+      },
+      {
+        "metric": "pf_stability",
+        "value": null,
+        "note": "Lower PF but more stable -less sensitive to sample composition"
+      }
+    ]
+  },
+  "fvg_continuation": {
+    "label": "FVG Continuation",
+    "observations": [
+      {
+        "metric": "expectancy",
+        "value": null,
+        "note": "Strong expectancy per trade"
+      },
+      {
+        "metric": "drawdown_variability",
+        "value": null,
+        "note": "Highest drawdown variability across strategy types -DD distribution is wide"
       }
     ]
   }
