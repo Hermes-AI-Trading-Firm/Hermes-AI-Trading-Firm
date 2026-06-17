@@ -17,5 +17,24 @@
     "author": "human",
     "commit": "fb54a2e",
     "recorded_at": "2026-06-16T00:00:00+00:00"
+  },
+  {
+    "ledger_id": "d273e900",
+    "date": "2026-06-16",
+    "change_type": "GOVERNANCE_DECISION",
+    "phase": "Phase Freeze",
+    "question": "What should Hermes do with forty-two phases built?",
+    "summary": "Phase Freeze Directive: no Phase 43+ until real-world usage reveals genuine need. Next objective is operational validation.",
+    "three_question_test": {
+      "better_evidence": "PASS",
+      "better_questions": "PASS",
+      "human_decides": "PASS"
+    },
+    "authority_impact": "NONE",
+    "review_required_impact": "UNCHANGED",
+    "affected_phases": [],
+    "author": "human",
+    "commit": "297d69d",
+    "recorded_at": "2026-06-17T04:50:23+00:00"
   }
 ]
