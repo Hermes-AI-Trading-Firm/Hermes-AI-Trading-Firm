@@ -119,6 +119,37 @@ _SUMMARY_STRUCTURAL: set[str] = {"Strategy", "Instrument", "Period", "Start Date
 
 VALID_DIRECTIONS = {"Long": "LONG", "Short": "SHORT"}
 
+# NT8 column name aliases -- real exports use different names than documented
+_COLUMN_ALIASES: Dict[str, str] = {
+    "Qty":             "Quantity",
+    "Trade number":    "Trade #",
+    "Cum. net profit": "Cum. profit",
+}
+
+# Grid-format row label (lowercase) -> standard column name
+_GRID_LABEL_MAP: Dict[str, str] = {
+    "total net profit":     "Net Profit",
+    "gross profit":         "Gross Profit",
+    "gross loss":           "Gross Loss",
+    "commission":           "Commission",
+    "profit factor":        "Profit Factor",
+    "max. drawdown":        "Max. Drawdown",
+    "sharpe ratio":         "Sharpe Ratio",
+    "sortino ratio":        "Sortino Ratio",
+    "recovery factor":      "Recovery Factor",
+    "total # of trades":    "# of Trades",
+    "probability":          "% Profitable",
+    "avg. trade":           "Avg. Trade",
+    "avg. win":             "Avg. Win",
+    "avg. loss":            "Avg. Loss",
+    "max. win":             "Max. Win",
+    "max. loss":            "Max. Loss",
+    "max. consec. winners": "Max. Consec. Winners",
+    "max. consec. losers":  "Max. Consec. Losers",
+    "start date":           "Start Date",
+    "end date":             "End Date",
+}
+
 # ---------------------------------------------------------------------------
 # Sample-file detection
 # ---------------------------------------------------------------------------
@@ -147,14 +178,56 @@ def _ensure_dedup_index(conn: sqlite3.Connection) -> None:
 # ---------------------------------------------------------------------------
 
 def _clean_num(v: Any) -> Optional[float]:
-    """Strip $, %, commas; return float or None."""
+    """Strip $, %, commas, parentheses; return float or None.
+    Handles NT8 currency notation: ($182.00) -> -182.00, $359.00 -> 359.00.
+    """
     if v is None or str(v).strip() in ("", "-", "N/A", "n/a"):
         return None
-    s = str(v).strip().lstrip("$").replace(",", "").rstrip("%")
+    s = str(v).strip()
+    negative = s.startswith("(") and s.endswith(")")
+    if negative:
+        s = s[1:-1]
+    s = s.lstrip("$").replace(",", "").rstrip("%")
     try:
-        return float(s)
+        result = float(s)
+        return -result if negative else result
     except (TypeError, ValueError):
         return None
+
+
+def _apply_aliases(rows: List[Dict]) -> List[Dict]:
+    """Normalize NT8 column name variations to expected names."""
+    if not rows:
+        return rows
+    needs_rename = {k: v for k, v in _COLUMN_ALIASES.items() if k in rows[0]}
+    if not needs_rename:
+        return rows
+    out = []
+    for row in rows:
+        new_row = {}
+        for k, val in row.items():
+            new_row[needs_rename.get(k, k)] = val
+        out.append(new_row)
+    return out
+
+
+def _is_grid_format(fieldnames: List[str]) -> bool:
+    """True if CSV is NT8 grid format (Performance / All trades / Long trades ...)."""
+    return bool(fieldnames) and fieldnames[0].strip().lower() in ("performance", "")
+
+
+def _parse_grid_to_standard_row(rows: List[Dict]) -> Dict[str, str]:
+    """Convert grid-format rows to a standard column-oriented row dict.
+    Takes the 'All trades' column as the aggregate value for each metric.
+    """
+    result: Dict[str, str] = {"Strategy": "", "Instrument": ""}
+    for row in rows:
+        label = (row.get("Performance") or "").strip().lower()
+        value = (row.get("All trades") or "").strip()
+        std_col = _GRID_LABEL_MAP.get(label)
+        if std_col:
+            result[std_col] = value
+    return result
 
 
 def _pct_to_decimal(v: Any) -> Optional[float]:
@@ -250,11 +323,17 @@ def import_backtest_summary(
 
     with path.open(newline="", encoding="utf-8-sig") as fh:
         reader = csv.DictReader(fh)
-        rows   = list(reader)
-        fields = set(reader.fieldnames or [])
+        rows        = list(reader)
+        fields_list = list(reader.fieldnames or [])
+        fields      = set(fields_list)
 
     if not rows:
         return None, ["CSV is empty"]
+
+    # Grid format: convert to standard row before processing
+    if _is_grid_format(fields_list):
+        rows   = [_parse_grid_to_standard_row(rows)]
+        fields = set(rows[0].keys())
 
     missing = REQUIRED_SUMMARY_COLS - fields
     if missing:
@@ -408,6 +487,10 @@ def import_trade_list(
 
     if not rows:
         return 0, 0, ["CSV is empty -- nothing to import"]
+
+    # Normalize column name aliases
+    rows   = _apply_aliases(rows)
+    fields = set(rows[0].keys()) if rows else fields
 
     missing = REQUIRED_TRADE_LIST_COLS - fields
     if missing:
@@ -584,6 +667,14 @@ def probe_summary(path: Path) -> Dict[str, Any]:
     r["columns_found"] = fields
     r["row_count"]     = len(rows)
 
+    # Grid format: convert to standard row before column checks
+    if _is_grid_format(fields):
+        r["is_grid_format"] = True
+        std_row = _parse_grid_to_standard_row(rows)
+        rows    = [std_row]
+        fields  = list(std_row.keys())
+        r["columns_found"] = fields
+
     fields_set = set(fields)
     r["required_present"] = sorted(REQUIRED_SUMMARY_COLS & fields_set)
     r["required_missing"] = sorted(REQUIRED_SUMMARY_COLS - fields_set)
@@ -666,6 +757,10 @@ def probe_trade_list(path: Path, initial_capital: Optional[float] = None) -> Dic
     except Exception as exc:
         r["verdict"] = f"ERROR -- could not read: {exc}"
         return r
+
+    # Normalize column name aliases before any column checks
+    rows   = _apply_aliases(rows)
+    fields = list(rows[0].keys()) if rows else fields
 
     r["columns_found"] = fields
     r["row_count"]     = len(rows)

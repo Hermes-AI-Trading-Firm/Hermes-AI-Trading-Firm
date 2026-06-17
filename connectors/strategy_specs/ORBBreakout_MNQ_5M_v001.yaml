@@ -1,0 +1,48 @@
+spec_name: ORBBreakout_MNQ_5M_v001
+instrument: MNQ
+symbol: MNQ
+timeframe: 5 min
+strategy_type: breakout
+session: US Regular
+
+status: draft
+
+description: >
+  MNQ 5-minute opening range breakout strategy tested through NinjaTrader
+  Strategy Analyzer. Research import only. No live trading.
+
+entry_rules: >
+  1. Define the opening range from the configured opening-session window
+     used in the NT8 strategy.
+  2. Enter long on confirmed breakout above opening range high.
+  3. Enter short on confirmed breakout below opening range low.
+  4. Use the NT8 strategy's configured session filters.
+
+exit_rules: >
+  Use the NT8 strategy's configured stop loss, profit target, and
+  time-based exit filters as defined in the strategy code.
+
+stop_loss_type: fixed
+stop_loss_value: 0.0
+profit_target_type: fixed
+profit_target_value: 0.0
+
+risk_rules: >
+  No live trading. Research import only.
+  Position size: as configured in NT8 backtest (1 contract).
+  Human approval required before any forward testing or live deployment.
+
+why_edge_exists: >
+  Opening range breakouts capture directional momentum as the market
+  establishes its intraday direction from the first session window.
+  MNQ provides sufficient liquidity and tick granularity for 5-minute ORB
+  execution. Edge hypothesis: early directional bias persists through
+  morning session when breakout is confirmed above/below the opening range.
+
+why_strategy_may_fail: >
+  Current backtest (Jan-Jun 2026) shows negative performance:
+  Net Profit -1161.00, Profit Factor 0.93, Sharpe -0.45, 169 trades.
+  Strategy may be overfitted to specific parameter set, affected by
+  choppy intraday conditions, or require regime filtering to identify
+  valid breakout days. OOS validation and regime analysis required
+  before any conclusions can be drawn.
