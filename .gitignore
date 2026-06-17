@@ -19,6 +19,7 @@ reports/portfolio/
 reports/lifecycle/
 reports/knowledge_graph/
 reports/questions/
+reports/priorities/
 api/_server.*
 nt8_export/*
 !nt8_export/.gitkeep
