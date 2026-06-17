@@ -17,6 +17,7 @@ reports/archetypes/
 reports/comparison/
 reports/portfolio/
 reports/lifecycle/
+reports/knowledge_graph/
 api/_server.*
 nt8_export/*
 !nt8_export/.gitkeep
