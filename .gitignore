@@ -22,6 +22,7 @@ reports/questions/
 reports/priorities/
 reports/certification/
 reports/traceability/
+reports/review/
 api/_server.*
 nt8_export/*
 !nt8_export/.gitkeep
