@@ -1,0 +1,21 @@
+[
+  {
+    "ledger_id": "00000040",
+    "date": "2026-06-16",
+    "change_type": "PHASE_ADDED",
+    "phase": "Phase 40",
+    "question": "What reasoning led the human to the decision?",
+    "summary": "Preserve human judgment as institutional memory.",
+    "three_question_test": {
+      "better_evidence": "PASS",
+      "better_questions": "PASS",
+      "human_decides": "PASS"
+    },
+    "authority_impact": "NONE",
+    "review_required_impact": "UNCHANGED",
+    "affected_phases": [],
+    "author": "human",
+    "commit": "fb54a2e",
+    "recorded_at": "2026-06-16T00:00:00+00:00"
+  }
+]
