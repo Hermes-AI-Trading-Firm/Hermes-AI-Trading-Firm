@@ -1144,6 +1144,82 @@ function renderCompliance(data) {
 }
 
 // ---------------------------------------------------------------------------
+// Evidence Quality (Phase 37)
+// ---------------------------------------------------------------------------
+
+function evidenceCellClass(cell) {
+  if (cell === "OK")   return "text-success";
+  if (cell === "WEAK") return "text-warn";
+  return "muted";
+}
+
+function evidenceGradeClass(grade) {
+  if (grade === "STRONG")     return "text-success";
+  if (grade === "MODERATE")   return "text-accent";
+  if (grade === "WEAK")       return "text-warn";
+  if (grade === "INCOMPLETE") return "text-danger";
+  return "muted";
+}
+
+function renderEvidenceQuality(data) {
+  const root = el("evidenceQualityPanel");
+  if (!root) return;
+  const badge = el("evidenceQualityCount");
+  const items = (data && data.items) || [];
+  if (badge) badge.textContent = items.length;
+
+  if (!items.length) {
+    root.innerHTML = "<div class='muted'>No strategies found</div>";
+    return;
+  }
+
+  const hdr = `
+    <div class="ev-table">
+      <div class="ev-row ev-header">
+        <span class="ev-col-name">Strategy</span>
+        <span class="ev-col-cell">BT</span>
+        <span class="ev-col-cell">Trades</span>
+        <span class="ev-col-cell">OOS</span>
+        <span class="ev-col-cell">WF</span>
+        <span class="ev-col-cell">MC</span>
+        <span class="ev-col-cell">Regime</span>
+        <span class="ev-col-cell">Cert</span>
+        <span class="ev-col-grade">Overall</span>
+      </div>
+  `;
+
+  const rows = items.map(s => {
+    const btCls     = evidenceCellClass(s.bt);
+    const oosCls    = evidenceCellClass(s.oos);
+    const wfCls     = evidenceCellClass(s.wf);
+    const mcCls     = evidenceCellClass(s.mc);
+    const regimeCls = evidenceCellClass(s.regime);
+    const certCls   = evidenceCellClass(s.cert);
+    const gradeCls  = evidenceGradeClass(s.overall);
+    const trades    = s.trades != null ? s.trades : "--";
+    return `
+      <div class="ev-row">
+        <span class="ev-col-name" title="${escapeHtml(s.asset_class)} ${escapeHtml(s.symbol)}">${escapeHtml(s.spec_name)}</span>
+        <span class="ev-col-cell ${btCls}">${escapeHtml(s.bt)}</span>
+        <span class="ev-col-cell muted">${trades}</span>
+        <span class="ev-col-cell ${oosCls}">${escapeHtml(s.oos)}</span>
+        <span class="ev-col-cell ${wfCls}">${escapeHtml(s.wf)}</span>
+        <span class="ev-col-cell ${mcCls}">${escapeHtml(s.mc)}</span>
+        <span class="ev-col-cell ${regimeCls}">${escapeHtml(s.regime)}</span>
+        <span class="ev-col-cell ${certCls}">${escapeHtml(s.cert)}</span>
+        <span class="ev-col-grade ${gradeCls}">${escapeHtml(s.overall)}</span>
+      </div>
+    `;
+  }).join("");
+
+  const ts = data.generated_at
+    ? `<div class="muted" style="font-size:0.8em;margin-top:8px;">Generated: ${escapeHtml((data.generated_at || "").slice(0,16).replace("T"," "))}</div>`
+    : "";
+
+  root.innerHTML = hdr + rows + `</div>` + ts;
+}
+
+// ---------------------------------------------------------------------------
 // REFRESH — tries live API first, falls back to mock
 // ---------------------------------------------------------------------------
 
@@ -1155,7 +1231,7 @@ async function refresh() {
       const pill = el("apiStatus");
       if (pill) { pill.className = "status-pill online"; pill.textContent = "API Online"; }
 
-      const [queue, rankings, pipeline, propFirm, activity, nt8Acct, nt8Trd, attr, compliance, equity, perf, dq] = await Promise.all([
+      const [queue, rankings, pipeline, propFirm, activity, nt8Acct, nt8Trd, attr, compliance, equity, perf, dq, ev] = await Promise.all([
         apiFetch("/strategy-queue"),
         apiFetch("/research-rankings"),
         apiFetch("/pipeline-status"),
@@ -1168,6 +1244,7 @@ async function refresh() {
         apiFetch("/equity-curve"),
         apiFetch("/performance-summary"),
         apiFetch("/decision-queue"),
+        apiFetch("/evidence-quality"),
       ]);
 
       if (queue)    renderQueue(queue.items || []);
@@ -1182,6 +1259,7 @@ async function refresh() {
       renderEquityCurve(equity    || { count: 0, items: [], summary: null });
       renderPerformanceSummary(perf || null);
       renderDecisionQueue(dq      || { count: 0, items: [] });
+      renderEvidenceQuality(ev    || { count: 0, items: [] });
 
       // Panels without live endpoints yet → keep mock
       const [mf, app, rej, asset, risk, regime, fwd] = await Promise.all([
@@ -1247,6 +1325,7 @@ async function refresh() {
     renderEquityCurve({ count: 0, items: [], summary: null });
     renderPerformanceSummary(null);
     renderDecisionQueue({ count: 0, items: [] });
+    renderEvidenceQuality({ count: 0, items: [] });
 
     el("lastUpdated").textContent = new Date().toISOString();
     logActivity("API offline — using mock data");

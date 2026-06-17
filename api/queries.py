@@ -812,3 +812,112 @@ def decision_queue(conn: sqlite3.Connection) -> Dict[str, Any]:
         return {"error": str(exc), "count": 0, "items": []}
 
     return {"count": len(items), "items": items}
+
+
+# ---------------------------------------------------------------------------
+# /evidence-quality
+# ---------------------------------------------------------------------------
+
+def evidence_quality(conn: sqlite3.Connection) -> Dict[str, Any]:
+    _empty: Dict[str, Any] = {"count": 0, "generated_at": _now(), "items": []}
+    try:
+        cur = conn.execute("""
+            SELECT
+                ss.spec_id,
+                ss.spec_name,
+                ss.asset_class,
+                ss.symbol,
+                ss.status                                                            AS lifecycle_status,
+                (SELECT COUNT(*) FROM backtests
+                 WHERE spec_id = ss.spec_id AND is_in_sample = 1)                   AS is_count,
+                (SELECT MAX(total_trades) FROM backtests
+                 WHERE spec_id = ss.spec_id AND is_in_sample = 1)                   AS is_trades,
+                (SELECT COUNT(*) FROM backtests
+                 WHERE spec_id = ss.spec_id AND is_in_sample = 0)                   AS oos_count,
+                sr.composite_score,
+                sr.grade,
+                sr.walk_forward_pass,
+                sr.monte_carlo_pass,
+                sr.walk_forward_score,
+                sr.monte_carlo_score,
+                (SELECT COUNT(*) FROM regime_analysis
+                 WHERE spec_id = ss.spec_id AND status = 'completed')               AS regime_count
+            FROM strategy_specs ss
+            LEFT JOIN scoring_results sr
+                ON sr.spec_id = ss.spec_id
+               AND sr.scoring_id = (
+                   SELECT MAX(scoring_id) FROM scoring_results WHERE spec_id = ss.spec_id
+               )
+            ORDER BY
+                CASE WHEN (SELECT COUNT(*) FROM backtests WHERE spec_id = ss.spec_id) > 0
+                     THEN 0 ELSE 1 END,
+                COALESCE(sr.composite_score, 0) DESC
+        """)
+        rows = _rows(cur)
+    except Exception as exc:
+        return {**_empty, "error": str(exc)}
+
+    def _bt(row: Dict[str, Any]) -> str:
+        if not row.get("is_count"):
+            return "--"
+        return "OK" if (row.get("is_trades") or 0) >= 10 else "WEAK"
+
+    def _oos(row: Dict[str, Any]) -> str:
+        return "OK" if (row.get("oos_count") or 0) > 0 else "--"
+
+    def _wf(row: Dict[str, Any]) -> str:
+        if not row.get("is_count"):
+            return "--"
+        if row.get("walk_forward_pass") == 1:
+            return "OK"
+        if (row.get("walk_forward_score") or 0) > 0:
+            return "WEAK"
+        return "--"
+
+    def _mc(row: Dict[str, Any]) -> str:
+        if not row.get("is_count"):
+            return "--"
+        if row.get("monte_carlo_pass") == 1:
+            return "OK"
+        if (row.get("monte_carlo_score") or 0) > 0:
+            return "WEAK"
+        return "--"
+
+    def _overall(row: Dict[str, Any]) -> str:
+        if not row.get("is_count"):
+            return "INCOMPLETE"
+        if not row.get("oos_count"):
+            return "WEAK"
+        wf_present = (row.get("walk_forward_score") or 0) > 0
+        mc_present = (row.get("monte_carlo_score") or 0) > 0
+        if not wf_present or not mc_present:
+            return "WEAK"
+        if (row.get("walk_forward_pass") == 1
+                and row.get("monte_carlo_pass") == 1
+                and (row.get("is_trades") or 0) >= 30):
+            return "STRONG"
+        return "MODERATE"
+
+    items = []
+    for row in rows:
+        items.append({
+            "spec_id":          row["spec_id"],
+            "spec_name":        row["spec_name"],
+            "asset_class":      row.get("asset_class") or "",
+            "symbol":           row.get("symbol") or "",
+            "lifecycle_status": row.get("lifecycle_status") or "",
+            "bt":               _bt(row),
+            "trades":           row.get("is_trades"),
+            "oos":              _oos(row),
+            "wf":               _wf(row),
+            "mc":               _mc(row),
+            "regime":           "OK" if (row.get("regime_count") or 0) > 0 else "--",
+            "cert":             "--",
+            "overall":          _overall(row),
+        })
+
+    return {
+        "count":        len(items),
+        "generated_at": _now(),
+        "items":        items,
+    }

@@ -839,3 +839,61 @@ code {
   border-radius: 999px;
   min-width: 2px;
 }
+
+/* Row 11 — Evidence Quality (Phase 37) */
+
+.ev-table {
+  width: 100%;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ev-row {
+  display: grid;
+  grid-template-columns: 2fr repeat(7, 60px) 100px;
+  gap: 0 8px;
+  align-items: center;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ev-row:last-child {
+  border-bottom: none;
+}
+
+.ev-header {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ev-col-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ev-col-cell {
+  text-align: center;
+  font-size: 11px;
+}
+
+.ev-col-grade {
+  text-align: right;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .ev-row {
+    grid-template-columns: 1fr repeat(4, 50px) 80px;
+  }
+  .ev-col-cell:nth-child(3),
+  .ev-col-cell:nth-child(7),
+  .ev-col-cell:nth-child(8) {
+    display: none;
+  }
+}
