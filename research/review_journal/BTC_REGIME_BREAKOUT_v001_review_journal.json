@@ -1,0 +1,31 @@
+[
+  {
+    "journal_id": "cae94371",
+    "spec_id": 1,
+    "spec_name": "BTC_REGIME_BREAKOUT_v001",
+    "reviewer": "human",
+    "date": "2026-06-16",
+    "decision": "NEED_MORE_EVIDENCE",
+    "reasoning": "Strong IS edge but OOS gap is disqualifying at this stage.",
+    "key_evidence": [
+      "PF=2.43",
+      "Sharpe=1.85",
+      "247 trades"
+    ],
+    "concerns": [
+      "No OOS validation",
+      "Single regime window"
+    ],
+    "unanswered_questions": [
+      "Does edge hold OOS?",
+      "Regime dependency confirmed?"
+    ],
+    "next_research_actions": [
+      "Run OOS backtest",
+      "Complete regime analysis"
+    ],
+    "confidence_level": "HIGH",
+    "recorded_at": "2026-06-17T03:30:04+00:00",
+    "recorded_by": "human"
+  }
+]
