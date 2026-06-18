@@ -1,0 +1,58 @@
+spec_name: FVGContinuation_MNQ_1M_v001
+instrument: MNQ
+symbol: MNQ
+timeframe: 1 min
+strategy_type: fvg_continuation
+session: US Regular
+
+status: draft
+
+description: >
+  MNQ 1-minute Fair Value Gap continuation strategy tested through NinjaTrader
+  Strategy Analyzer. Enters in the direction of the FVG imbalance — long into
+  a bullish FVG, short into a bearish FVG — using tight profit targets and
+  stops. Research import only. No live trading.
+
+entry_rules: >
+  1. Detect a Fair Value Gap (three-candle imbalance: gap between candle 1 high
+     and candle 3 low for bullish FVG; gap between candle 1 low and candle 3
+     high for bearish FVG) on the 1-minute MNQ chart.
+  2. Enter long (FVGLong) on price retracement into a bullish FVG during US
+     Regular session.
+  3. Enter short (FVGShort) on price retracement into a bearish FVG during US
+     Regular session.
+  4. Entry names in backtest: FVGLong / FVGShort.
+
+exit_rules: >
+  Fixed profit target or fixed stop loss, as configured in the NT8 strategy.
+  Exit names in backtest: Profit target / Stop loss.
+  Average time in market: 3.72 minutes (1.63 bars per trade).
+
+stop_loss_type: fixed
+stop_loss_value: 0.0
+profit_target_type: fixed
+profit_target_value: 0.0
+
+risk_rules: >
+  No live trading. Research import only.
+  Position size: 1 contract (as configured in NT8 backtest).
+  Human approval required before any forward testing or live deployment.
+
+why_edge_exists: >
+  Fair Value Gaps represent price imbalances where one side of the market
+  was absent during a rapid move. Price frequently returns to fill or test
+  these gaps before continuing in the original direction. On MNQ 1-minute
+  bars, intraday FVGs created during early session momentum moves may offer
+  short-duration continuation entries with defined risk. Edge hypothesis:
+  short-term institutional order flow creates FVGs that act as temporary
+  support/resistance, providing a high-frequency entry signal with tight
+  risk parameters.
+
+why_strategy_may_fail: >
+  Current backtest (Jan-Jun 2026) shows negative performance:
+  Net Profit -303.50, Profit Factor 0.89, Sharpe -0.30, 230 trades.
+  Avg win ($20.85) is smaller than avg loss ($22.73) — unfavorable
+  win/loss ratio despite 49% win rate. At 1-minute resolution, FVGs
+  may fill too quickly or be invalidated by spread and slippage in live
+  conditions. Strategy may require session-time filtering, regime
+  filtering, or parameter optimization. OOS validation required.
