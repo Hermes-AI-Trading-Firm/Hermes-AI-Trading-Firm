@@ -1,0 +1,66 @@
+spec_name: VWAPPullback_MNQ_1M_v001
+instrument: MNQ
+symbol: MNQ
+timeframe: 1 min
+strategy_type: vwap_pullback
+session: RTH
+
+status: draft
+
+description: >
+  MNQ 1-minute VWAP Pullback strategy, RTH session only. Enters long when
+  price pulls back to VWAP from above with bullish confirmation; enters short
+  when price rallies to VWAP from below with bearish confirmation. Uses
+  session-anchored VWAP calculated from typical price × volume. Fixed stop
+  loss and profit target (1.5R). Research import only. No live trading.
+
+entry_rules: >
+  Long (VWAPLong):
+  1. Prior bar closed above session VWAP (bullish bias established).
+  2. This bar's low reached within PullbackTicks (4) of VWAP.
+  3. Bullish candle: close > open (rejection of VWAP support).
+  4. Close back above VWAP (confirmation level held).
+
+  Short (VWAPShort):
+  1. Prior bar closed below session VWAP (bearish bias established).
+  2. This bar's high reached within PullbackTicks (4) of VWAP.
+  3. Bearish candle: close < open (rejection of VWAP resistance).
+  4. Close back below VWAP (confirmation level rejected).
+
+  Session gate: 09:30 to 15:45 ET. IsExitOnSessionCloseStrategy=true.
+
+exit_rules: >
+  Fixed profit target: 24 ticks (6 MNQ points = $12.00).
+  Fixed stop loss: 16 ticks (4 MNQ points = $8.00).
+  Win/loss ratio: 1.5R.
+  All open positions closed 30 seconds before session end.
+
+stop_loss_type: fixed
+stop_loss_value: 16
+profit_target_type: fixed
+profit_target_value: 24
+
+risk_rules: >
+  No live trading. Research import only.
+  Position size: 1 contract (as configured in NT8 backtest).
+  Human approval required before any forward testing or live deployment.
+
+why_edge_exists: >
+  VWAP is the primary institutional reference price for intraday order flow.
+  When price is above VWAP, the intraday trend is bullish relative to
+  volume-weighted fair value; a pullback to VWAP tests institutional support.
+  A bullish rejection candle at VWAP signals that buyers defended the level,
+  creating a continuation opportunity with VWAP as a natural stop anchor.
+  Edge hypothesis: institutional order flow clusters at VWAP create
+  identifiable support/resistance rejections with a favorable 1.5R structure.
+
+why_strategy_may_fail: >
+  Current backtest (Jan-Jun 2026) shows negative performance:
+  Net Profit -580.00, PF=0.72, Sharpe=-0.82, 386 trades.
+  Win rate 32.38% with avg time in market of 0.38 bars indicates most trades
+  resolve within the same 1-minute bar — SL or PT hit almost immediately after
+  entry. At this resolution, the strategy may be too sensitive to bar-level
+  noise rather than genuine VWAP reactions. The 1.5R structure requires a
+  33%+ win rate to break even; current 32.38% falls marginally short.
+  Session filtering, wider pullback tolerance, or confirmation over multiple
+  bars may improve signal quality. OOS validation required.
