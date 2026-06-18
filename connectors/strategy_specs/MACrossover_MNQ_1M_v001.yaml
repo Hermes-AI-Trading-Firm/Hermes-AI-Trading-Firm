@@ -1,0 +1,59 @@
+spec_name: MACrossover_MNQ_1M_v001
+instrument: MNQ
+symbol: MNQ
+timeframe: 1 min
+strategy_type: ma_crossover
+session: 24h
+
+status: draft
+
+description: >
+  MNQ 1-minute Moving Average Crossover strategy tested through NinjaTrader
+  Strategy Analyzer using the built-in "Sample MA crossover" strategy.
+  Always-in-market reversal system: enters long on bullish MA crossover,
+  reverses to short on bearish MA crossover. Runs 24 hours including
+  extended hours. Research import only. No live trading.
+
+entry_rules: >
+  1. Enter long ("Buy") when fast MA crosses above slow MA.
+  2. Reverse to short ("Sell short") when fast MA crosses below slow MA.
+  3. Strategy is always in the market — each new signal closes the prior
+     position and opens the opposite. Exit name: "Close position".
+  4. Runs across full 24-hour MNQ session including extended hours.
+
+exit_rules: >
+  Position closed and reversed on next MA crossover signal.
+  Exit name in backtest: "Close position".
+  Average time in market: 22.30 minutes (21.55 bars per trade on 1-min chart).
+
+stop_loss_type: none
+stop_loss_value: 0.0
+profit_target_type: none
+profit_target_value: 0.0
+
+risk_rules: >
+  No live trading. Research import only.
+  Position size: 1 contract (as configured in NT8 backtest).
+  No stop loss or profit target -- always in market via reversal.
+  Human approval required before any forward testing or live deployment.
+
+why_edge_exists: >
+  Moving average crossovers capture directional bias by filtering price
+  noise through two MA periods. When the fast MA is above the slow MA,
+  price momentum is bullish; the reverse signals bearish momentum. On MNQ
+  1-minute bars running 24/7, the strategy attempts to ride intraday and
+  overnight trends. Edge hypothesis: during trending regimes, MA crossovers
+  capture sustained directional moves with favorable win/loss ratio (avg
+  win $66.63 vs avg loss $39.53, ratio 1.69) despite lower win rate.
+
+why_strategy_may_fail: >
+  Current backtest (Jan-Jun 2026) shows negative performance:
+  Net Profit -13766.50, PF=0.92, Sharpe=-0.69, 6932 trades.
+  At 60 trades/day, the strategy is extremely sensitive to transaction
+  costs and slippage -- commission-free backtest conceals realistic execution
+  costs. Win rate of 35.13% requires sustained trends to remain profitable;
+  in choppy or mean-reverting conditions the crossovers produce false signals.
+  24/7 operation exposes the strategy to thin overnight sessions with wider
+  spreads and gap risk. MA parameters likely require regime-conditional
+  adaptation. OOS validation and regime analysis required before any
+  conclusions can be drawn.
